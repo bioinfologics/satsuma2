@@ -38,7 +38,7 @@ int RCQuery(int offset, int start, int len, int chunkSize, int qLen)
 class HomologyByXCorr
 {
 public:
-  HomologyByXCorr(string mHostname, int port, int _sid, string qFilename, int qChunk, string tFilename, int tChunk, double _topCutoff, double _topCutoffFast, int _nprocs) {
+  HomologyByXCorr(string mHostname, int port, int _sid, string qFilename, int qChunk, string tFilename, int tChunk, double _topCutoff, double _topCutoffFast) {
     m_minLen = 0;
     m_pMulti = NULL;
     m_offset = 0;
@@ -60,15 +60,13 @@ public:
     pairs=NULL;
     topCutoff=_topCutoff;
     topCutoffFast=_topCutoffFast;
-    nprocs=_nprocs;
-
   }
 
   void SetMinProb(double p) {
     m_minProb = p;
   }
 
-  void Align(int _thread_id,int _target_id, CCSignal _target_signal, int _query_id, CCSignal _query_signal, CCSignal _query_rcsignal, bool fast);
+  void Align(int _target_id, CCSignal _target_signal, int _query_id, CCSignal _query_signal, CCSignal _query_rcsignal, bool fast);
 
   void SetTargetSize(double i) {
     m_targetSize = i;
@@ -83,10 +81,9 @@ public:
   void create_chunks();
   int get_targets_from_master();
   void send_solutions_to_master();
-  CCSignal * create_signals(vecDNAVector _sequences, unsigned long int _from, unsigned long int _count, bool reverse);
-  void process_alignements(int _thread_id,long unsigned int, long unsigned int);
-  void align_block(int _thread_id,unsigned long int pair_id);
-  void FilterMatches(int _thread_id, int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse);
+  std::vector<CCSignal> create_signals(vecDNAVector _sequences, unsigned long int _from, unsigned long int _count, bool reverse);
+  void align_block(unsigned long int pair_id);
+  void FilterMatches(int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse);
   void work();
 
 
@@ -114,7 +111,6 @@ private:
   int portno;
   unsigned int slave_id;
   int num_targets;
-  int nprocs;
   int queryChunk,targetChunk;
   string target_filename,query_filename;
   vecDNAVector target, query;
@@ -122,7 +118,6 @@ private:
   ChunkManager * cmQuery; //XXX: forced to use this as no default init
   ChunkManager * cmTarget; //XXX: forced to use this as no default init
   svec<SeqChunk> targetInfo, queryInfo;
-  std::vector< std::vector<t_result> > resultstv;
   std::vector<t_result> resultsv;
  
 
@@ -288,13 +283,14 @@ void HomologyByXCorr::send_solutions_to_master(){
     disconnect_from_master();
     //TODO: free(pairs);
     free(pairs);
+    resultsv.resize(0);
     pairs=NULL;
 
     pair_count=0;
     cout<<" SENT"<<endl;
 }
 
-void HomologyByXCorr::FilterMatches(int _thread_id,int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse){
+void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse){
     int len, tStart, qStart;
     for (int j=0; j<_matches.isize(); j++) {
         if (_matches[j].GetLength() < m_minLen)
@@ -321,8 +317,6 @@ void HomologyByXCorr::FilterMatches(int _thread_id,int _target_id, int _query_id
         //cout << "Match # " << j << " probability " << 100.* prob << " %" << endl;
         //cout << "Start target: " << tStart << " - " << tStart + len << endl;
         double ident = PrintMatch(query[_query_id], target[_target_id], _matches[j], true);//XXX: does this really print? PERFORMANCE!!!
-        //double ident = PrintMatch(query, target, m_matches[j], false);
-        //TODO: just use the struct to hold the values!
         t_result r;
         r.query_id=queryInfo[_query_id].GetID();
         r.target_id=targetInfo[_target_id].GetID();
@@ -333,21 +327,12 @@ void HomologyByXCorr::FilterMatches(int _thread_id,int _target_id, int _query_id
         r.reverse=_reverse;
         r.prob=prob;
         r.ident=ident;
-        //cout<< "Adding result for q="<<r.query_id<<" t="<<r.target_id<<" qsize="<<r.query_size<<endl;
-        resultstv[_thread_id].push_back(r);
-        //SingleMatch m;
-        //m.SetQueryTargetID(_query_id, _target_id, cmQuery->GetSize(_query_id));
-        //m.SetPos(qStart, tStart, len, _reverse);
-        //m.SetProbability(prob);
-        //m.SetIdentity(ident);
-        //m.AddMatches(ident * (double)len);
-        //_multi->AddMatch(m);
-
+        resultsv.push_back(r);
     }
 
 }
 
-void HomologyByXCorr::Align( int _thread_id,
+void HomologyByXCorr::Align(
         int _target_id,
         CCSignal _target_signal, 
         int _query_id,
@@ -355,8 +340,6 @@ void HomologyByXCorr::Align( int _thread_id,
         CCSignal _query_rcsignal, 
         bool _fast)
 {
-    //TODO: store results in _multi (DONE?)
-    //TODO: do FW, then RV (DONE?)
     CrossCorrelation xc;
     vecSeqMatch matches,revmatches;
     SeqAnalyzer sa;
@@ -368,19 +351,18 @@ void HomologyByXCorr::Align( int _thread_id,
     xc.CrossCorrelate(result, _target_signal, _query_signal);
     matches.clear();
     sa.MatchUp(matches, query[_query_id], target[_target_id], result);
-    FilterMatches(_thread_id,_target_id, _query_id, matches, false);
+    FilterMatches(_target_id, _query_id, matches, false);
 
     xc.CrossCorrelate(revresult, _target_signal, _query_rcsignal);
     revmatches.clear();
     sa.MatchUp(revmatches, query[_query_id], target[_target_id], revresult);
-    FilterMatches(_thread_id,_target_id, _query_id, revmatches, true);
+    FilterMatches(_target_id, _query_id, revmatches, true);
 
 }
-CCSignal * HomologyByXCorr::create_signals( vecDNAVector _sequences, unsigned long int _from, unsigned long int _count, bool reverse){
+std::vector<CCSignal> HomologyByXCorr::create_signals( vecDNAVector _sequences, unsigned long int _from, unsigned long int _count, bool reverse){
     cout<<"creating signals..."<<endl;
-    CCSignal * signals=new CCSignal[_count];
-    CCSignal s;
-
+    std::vector<CCSignal> signals;
+    signals.resize(_count);
     for (unsigned long int i=0;i<_count;i++){
         if (!reverse){
             signals[i].SetSequence(_sequences[_from+i], targetChunk *2);//XXX should chunkSize be a parameter???
@@ -394,13 +376,13 @@ CCSignal * HomologyByXCorr::create_signals( vecDNAVector _sequences, unsigned lo
 
 }
 
-void HomologyByXCorr::align_block(int _thread_id,unsigned long int pair_id){
+void HomologyByXCorr::align_block(unsigned long int pair_id){
 
     cout<<"Align block running (block: "<<pair_id<<" - t:"<<pairs[pair_id].targetFrom<<"-"<<pairs[pair_id].targetTo<<" q:"<<pairs[pair_id].queryFrom<<"-"<<pairs[pair_id].queryTo<<")"<<endl;
     //XXX: is this storage correct? create all signals for the target and query spaces
-    CCSignal * targetSignals;
-    CCSignal * querySignals;
-    CCSignal * querySignalsReverse;
+    std::vector<CCSignal> targetSignals;
+    std::vector<CCSignal> querySignals;
+    std::vector<CCSignal> querySignalsReverse;
     unsigned long int target_count, query_count;
 
     //Create all signals
@@ -418,54 +400,12 @@ void HomologyByXCorr::align_block(int _thread_id,unsigned long int pair_id){
         //for each query
         for (unsigned long int ti=0; ti<target_count; ti++){
             //for each target
-            Align( _thread_id,
+            Align(
                     pairs[pair_id].targetFrom+ti, targetSignals[ti],
                     pairs[pair_id].queryFrom+qi, querySignals[qi], querySignalsReverse[qi],
                     pairs[pair_id].fast);
         }
     }
-
-    //Destroy all signals
-    //for (unsigned long int qi=0; qi<query_count; qi++) {
-    //    delete (querySignals+qi);
-    //    delete (querySignalsReverse+qi);
-    //}
-    //free(querySignals);
-    //free(querySignalsReverse);
-    //for (unsigned long int ti=0; ti<target_count; ti++) delete (targetSignals+ti);
-    //free(targetSignals);
-    //delete querySignals;
-    //delete querySignalsReverse;
-    //delete targetSignals;
-    //XXX: I am leakig this, am I not?
-
-}
-
-void HomologyByXCorr::process_alignements(int _thread_id,unsigned long int start_target, unsigned long int target_count){
-    //cout<<"Process alignments running (Start: "<<start_target<<" Count: "<<target_count<<")"<<endl;
-    //initialize multi
-
-    for (unsigned long int pair_id=start_target; pair_id<start_target+target_count;pair_id++){
-        align_block(_thread_id,pair_id);
-    }
-
-}
-//XXX: this is not OOP, but fairly straighforward (wrapper for pthreads)
-struct thread_args { 
-    HomologyByXCorr * self;
-    unsigned long int start_target;
-    unsigned long int target_count;
-    int thread_id;
-};
-
-static void * run_thread(void * args){
-    cout<<"worker thread running"<<endl;
-    ((struct thread_args *) args)->self->process_alignements(
-        ((struct thread_args *) args)->thread_id,
-        ((struct thread_args *) args)->start_target,
-        ((struct thread_args *) args)->target_count
-        );
-    return NULL;
 }
 
 void HomologyByXCorr::work(){
@@ -478,35 +418,11 @@ void HomologyByXCorr::work(){
         cout<<"DONE, got "<<num_targets<<" targets"<<endl;
         if (0>=num_targets) break; //Master said DIE!!!
 
-        //======= Dispatch threads (align function is thread safe)
-        cout<<"Spawning "<<nprocs<<" workers"<<endl;
-        pthread_t * workers;
-        workers=(pthread_t *)malloc(nprocs*sizeof(pthread_t));
-        struct thread_args * thread_arguments;
-        thread_arguments=(struct thread_args *) malloc(nprocs*sizeof(thread_args));
-        resultstv.resize(nprocs);
-        unsigned long int next=0;
-        for (int i=0;i<nprocs;i++) {
-            thread_arguments[i].self=this;//using same instance for all, should be thread safe, TODO: checki!
-            thread_arguments[i].thread_id=i;
-            thread_arguments[i].start_target=next;
-            thread_arguments[i].target_count=(num_targets-next)/(nprocs-i);//first threads could have 1 less target
-            next+=thread_arguments[i].target_count;
-            pthread_create(workers+i,NULL,run_thread,thread_arguments+i);
-        }
-        //======= join
-        void * discard_status;
-        for (int i=0;i<nprocs;i++) pthread_join(workers[i],&discard_status);
-        resultsv.clear();
-        for (int i=0;i<nprocs;i++){
-          resultsv.insert(resultsv.end(),resultstv[i].begin(),resultstv[i].end());
-        }
-        resultstv.clear();
+        cout<<"Aligning..."<<endl;
+        for (int i=0;i<num_targets;i++) align_block(i);
         //======= send reply to master
-        cout<<"All workers finished, sending solutions"<<endl;
+        cout<<"Sending solutions"<<endl;
         send_solutions_to_master();
-        free(workers);
-        free(thread_arguments);
     }
 }
 
@@ -527,7 +443,6 @@ int main( int argc, char** argv ){
     commandArg<int> lIntCmmd("-l","minimum alignment length", 0);
     commandArg<int> qChunkCmmd("-q_chunk","query chunk size", 4096);
     commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
-    commandArg<int> procCmmd("-p","processors (alignment worker threads)");
     commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.9999);
     commandArg<double> cutoffCmmd("-cutoff","signal selection cutoff", 1.8);
     commandArg<double> cutoffFastCmmd("-cutoff_fast","signal selection cutoff (fast)", 2.9);
@@ -544,7 +459,6 @@ int main( int argc, char** argv ){
 
     P.registerArg(qChunkCmmd);
     P.registerArg(tChunkCmmd);
-    P.registerArg(procCmmd);
     P.registerArg(probCmmd);
     P.registerArg(cutoffCmmd);
     P.registerArg(cutoffFastCmmd);
@@ -559,7 +473,6 @@ int main( int argc, char** argv ){
     int minLen = P.GetIntValueFor(lIntCmmd);
     int targetChunk = P.GetIntValueFor(tChunkCmmd);
     int queryChunk = P.GetIntValueFor(qChunkCmmd);
-    int num_threads = P.GetIntValueFor(procCmmd);
     double minProb = P.GetDoubleValueFor(probCmmd);
 
     double topCutoff = P.GetDoubleValueFor(cutoffCmmd);
@@ -567,7 +480,7 @@ int main( int argc, char** argv ){
 
     //======= Initialize Classes =======
     cout << "Initializing HomologyByXCorr class..."<<endl;
-    HomologyByXCorr hbxc(master,port,sid,sQuery,queryChunk,sTarget,targetChunk,topCutoff,topCutoffFast,num_threads);
+    HomologyByXCorr hbxc(master,port,sid,sQuery,queryChunk,sTarget,targetChunk,topCutoff,topCutoffFast);
     hbxc.SetMinimumAlignLen(minLen);
     cout<<"DONE"<<endl;
     //======= Load Genomes =======

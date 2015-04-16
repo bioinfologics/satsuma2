@@ -177,7 +177,6 @@ int main( int argc, char** argv )
   commandArg<int> perCmmd("-m","number of jobs per block", 32);
   commandArg<int> slavepathCmmd("-slave_path","full path to the slave binary");
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
-  commandArg<int> threadsCmmd("-threads","number of threads in each slave", 4);
   commandArg<bool> nogoCmmd("-nosubmit","do not run jobs", false);
   commandArg<bool> nowaitCmmd("-nowait","do not wait for jobs", false);
   commandArg<bool> chainCmmd("-chain_only","only chain the matches", false);
@@ -222,7 +221,6 @@ int main( int argc, char** argv )
   P.registerArg(perCmmd);
   P.registerArg(slavepathCmmd);
   P.registerArg(slavesCmmd);
-  P.registerArg(threadsCmmd);
   P.registerArg(resumeCmmd);
   P.registerArg(seedCmmd);
   P.registerArg(blockPixelCmmd);
@@ -248,7 +246,6 @@ int main( int argc, char** argv )
   int perBlock = P.GetIntValueFor(perCmmd);
   string slave_path = P.GetStringValueFor(slavepathCmmd);
   int slave_count = P.GetIntValueFor(slavesCmmd);
-  int slave_threads = P.GetIntValueFor(threadsCmmd);
   bool bLSF = P.GetBoolValueFor(lsfCmmd);
   bool bLSFIni = P.GetBoolValueFor(lsfCmmdIni);
   bool bNogo = P.GetBoolValueFor(nogoCmmd);
@@ -351,7 +348,7 @@ int main( int argc, char** argv )
 
   //ALG: spawn slaves
 
-  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_path, slave_count, slave_threads);
+  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_path, slave_count);
   wq.setup_queue();//XXX totally wrong to name the slaves count like that!
 
   
@@ -412,7 +409,7 @@ int main( int argc, char** argv )
   //ALG: main loop
   while (true) {
     //ALG: wait for slaves to finish, and update the matches count
-    while (pending_matches == 0  || wq.pending_pair_count() >= slave_count * slave_threads * 4 ){
+    while (pending_matches == 0  || wq.pending_pair_count() >= slave_count * 4 ){
         pending_matches+=wq.collect_new_matches(matches);
         cout<<"Main loop waiting (pending_matches="<<pending_matches<<" pending_pairs="<<wq.pending_pair_count()<<") ..."<<endl;
         sleep(1); //XXX: needs to have something to do if no new matches because none was good
@@ -501,8 +498,8 @@ int main( int argc, char** argv )
     cout << "Collecting." << endl;
     //int realTargets = grid.CollectTargets(newTargets, nBlocks * perBlock, seedPlus);
     //TODO: ckech the size of the queue here, implement the proposed changes
-    nBlocks=4*slave_count*slave_threads;
-    int realTargets = grid.CollectTargets(newTargets, 4*slave_count*slave_threads, seedPlus);
+    nBlocks=4*slave_count;
+    int realTargets = grid.CollectTargets(newTargets, 4*slave_count, seedPlus);
     cout << "Targets retrieved: " << newTargets.isize() << endl;
     cout << "Ready to re-feed." << endl;
 

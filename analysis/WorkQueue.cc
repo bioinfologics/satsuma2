@@ -21,7 +21,7 @@
 #include "analysis/WorkQueue.h"
 
 
-WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, string _slave_cmd, int _slave_count, int _slave_threads){
+WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, string _slave_cmd, int _slave_count){
   minLen=_minLen;
   queryChunk=_queryChunk;
   query_filename=_sQuery;
@@ -31,7 +31,6 @@ WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarg
   sigCutoff=_sigCutoff;
   slave_cmd=_slave_cmd;
   slave_count=_slave_count;
-  slave_threads=_slave_threads;
   gethostname(master_hostname, sizeof(master_hostname));
   shutdown_status=0;
   port=MYPORT;
@@ -122,13 +121,13 @@ int WorkQueue::accept_client_command() {
 
 void WorkQueue::submit_tasks() {
   //ALG: caculate how many pairs to assign
-  //TODO: as of now, it gives a fixed number of pairs (2*slave_threads to be precise)
+  //XXX:number of pairs per slave is fixed
   int tp=0;
   int np=0;
   //XXX: i keep using malloc... can't help it!
   t_pair *p;
-  p=(t_pair *)malloc(slave_threads*4*sizeof(t_pair));
-  while (tp<slave_threads*4){
+  p=(t_pair *)malloc(4*sizeof(t_pair));
+  while (tp<4){
     np=next_pair_to_process(conn_clientID);
     //cout<<"  next pair to process is number "<<np<<endl;
     if (np==-1) break;
@@ -139,11 +138,10 @@ void WorkQueue::submit_tasks() {
   write(conn_sockfd,p,sizeof(t_pair)*tp);
   if (tp){
     //cout<<"Slave "<<conn_clientID<<" will process "<<tp<<" pairs, I have "<<pending_pair_count()<<" pending pairs on the queue"<<endl;
-    for (int i=0;i<slave_count;i++)
-      if (idle_slaves[i]) {
-        cout<<"Slave "<<conn_clientID<<" is working now."<<endl;
-        idle_slaves[i]=false;
-      }
+    if (idle_slaves[conn_clientID]) {
+      cout<<"Slave "<<conn_clientID<<" is working now."<<endl;
+      idle_slaves[conn_clientID]=false;
+    }
   } else {
     if (!idle_slaves[conn_clientID-1]) {
       idle_slaves[conn_clientID-1]=true;
@@ -170,7 +168,7 @@ void WorkQueue::receive_solutions() {
   for (unsigned int i=0;i<solcount;i++) {
     int availb;
     ioctl(conn_sockfd, FIONREAD, &availb);
-    for(int tries=0;tries<10 && availb<sizeof(t_result);tries++){
+    for(int tries=0;tries<50 && availb<sizeof(t_result);tries++){
       //cout<<"Waiting for the slow slave to send the results..."<<endl;
       usleep(100000);
       ioctl(conn_sockfd, FIONREAD, &availb);
@@ -283,21 +281,6 @@ void WorkQueue::start_listener(){
 void WorkQueue::close_queue(){
   shutdown_status=1;
 }
-/*
-void WorkQueue::setup_queue(){
-  //TODO: avoid all hardcoding and support PBS/LSF
-  //spawns each slave with its slave_id
-  start_listener();  
-  for (int i=0;i<slave_count;i++){
-    stringstream cmd;
-    cmd << "echo '" << slave_cmd << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
-    cmd << " -q " << query_filename << " -t " << target_filename;
-    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << " -p "<<slave_threads;
-    cmd << "'|qsub -l ncpus=" << slave_threads << " -N SL" << i+1;
-    cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
-    system(cmd.str().c_str());
-  }
-}*/
 
 void WorkQueue::setup_queue(){
   //TODO: avoid all hardcoding and support PBS/LSF
@@ -308,9 +291,9 @@ void WorkQueue::setup_queue(){
   for (int i=0;i<slave_count;i++){
     cmd << slave_cmd << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
     cmd << " -q " << query_filename << " -t " << target_filename;
-    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << " -p "<<slave_threads<<" &";
+    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << " &";
     if (i%8==7 || i==slave_count-1){
-      cmd << " wait '|qsub -l ncpus=" << 8*slave_threads << " -N SL" << i+1;
+      cmd << " wait '|qsub -l ncpus=" << 8 << " -N SL" << i+1;
       cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
       system(cmd.str().c_str());
       cmd.str("");
