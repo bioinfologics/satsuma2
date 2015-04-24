@@ -41,15 +41,15 @@ KMatch::KMatch(char * _target_filename, char * _query_filename, uint8_t _K){
   K=_K;
 };
 
-void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_positions_t> & kposv, std::vector<seq_attributes_t> & seqnames){
-  std::vector<kmer_positions_t> karray;
+void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t> & kposv, std::vector<seq_attributes_t> & seqnames){
+  std::vector<kmer_position_t> karray;
   //read fasta and push_back(kmer,pos) (use pos as chr*CHR_CONST+offset)
   //open file
   std::string line,seq;
   std::ifstream fasta(filename);
   seq_attributes_t seq_attr;
   
-  uint64_t max_freq=4;//XXX: make this an argument!!!
+  uint64_t max_freq=1;//XXX: make this an argument!!!
   std::pair<uint64_t,bool> ckmer;
   int64_t chr_offset=0;
   uint32_t seq_index=0;
@@ -64,10 +64,10 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_positions_t
         const char * s=seq.c_str();
         for (uint64_t p=0;p<seq.size()+1-K;p++){
           //TODO: this could well be parallel
-          kposv[kmer_index].seq_index=seq_index;
           ckmer=str_to_kmer(s+p,K);
           kposv[kmer_index].kmer=ckmer.first;
-          kposv[kmer_index].position=(ckmer.second ? -p : p) ;
+          kposv[kmer_index].position=seq_index*KMATCH_POSITION_CHR_CNST+p+1;//1-based position
+          if (ckmer.second) kposv[kmer_index].position=-kposv[kmer_index].position;
           kmer_index++;
         }
       }
@@ -83,6 +83,7 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_positions_t
       seq+=line;
     }
   }
+  fasta.close();
   std::cout<<"Kmer array with "<<kmer_index<<" elements created"<<std::endl;
   std::sort(kposv.begin(),kposv.end());
   std::cout<<"Kmer array sorted"<<std::endl;
@@ -110,7 +111,7 @@ void KMatch::merge_positions(){
   //TODO: parallel, each thread can take 1/t of the first array and scan the second array until finding the suitable start.
   std::cout<<"Starting to create matching positions"<<std::endl;
   uint64_t ti=0;
-  kmer_matches_t m;
+  kmer_match_t m;
   uint64_t tsize=target_positions.size();
   uint64_t qsize=query_positions.size();
   for (uint64_t qi=0;qi<qsize;qi++){
@@ -120,9 +121,21 @@ void KMatch::merge_positions(){
     if (query_positions[qi].kmer==target_positions[ti].kmer){
       //check for multi-match
       for (uint64_t j=0; ti+j<tsize && query_positions[qi].kmer==target_positions[ti+j].kmer; j++) {
+        bool rev=false;
         //insert each result XXX insert the real position + 1 to allow for sign
-        m.q_position=qi+1;
-        m.t_position=ti+j+1;
+        if (query_positions[qi].position>0){
+          m.q_position=query_positions[qi].position;
+        }else{
+          rev=true;
+          m.q_position=-query_positions[qi].position;
+        }
+        if (target_positions[ti+j].position>0){
+          m.t_position=target_positions[ti+j].position;
+        } else {
+          rev=!rev;
+          m.t_position=-target_positions[ti+j].position;
+        }
+        m.reverse=rev;
         kmatches.push_back(m);
       }
     }
@@ -131,32 +144,53 @@ void KMatch::merge_positions(){
 
 }
 
-void Kmatch::clear_positions(){
+void KMatch::clear_positions(){
   target_positions.clear();
   query_positions.clear();
 }
-void KMatch::dump_matches(char * out_filename, int min_length){
+void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_jump){
+  //XXX: allow for multi matches!!
   //watch out: matching positions are 1-based to allow for sign always
-  kmsize=kmatches.size();
+  uint64_t kmsize=kmatches.size();
   std::cout<<"Sorting the matches"<<std::endl;
   std::sort(kmatches.begin(),kmatches.end());//XXX: this needs to be sorted by absolute value!
-  std::cout<<"Dumping matches longer than "<< min_length << " to "<<out_filename<<std::endl;
-  std::ofstream fasta(out_filename);
-  int64_t match_start=-1;
-  bool q_signp=(kmatches[0].first>0);
-  int64_t q_posp
-  bool t_signp=(kmatches[0].first>0);
+  std::cout<<"Dumping matches of "<<min_length-K << " kmers with jumps of up to "<<max_jump<<" to "<<out_filename<<std::endl;
+  std::ofstream out_file(out_filename);
+  int64_t match_start=0;
+  int64_t q_delta, t_delta;
+  uint64_t dumped=0;
   for (uint64_t i=1;i<kmsize ;i++){//do not check the last element, check it outside!
-    //if match breaks in this element (equal signs on kmer, equal signs on advance
-
-    if ( (kmatches[i].first != kmatches.first[i+1]+1
-
+    //if match breaks in this element
+    q_delta=kmatches[i].q_position-kmatches[i-1].q_position;
+    t_delta=kmatches[i].t_position-kmatches[i-1].t_position;
+    if ( kmatches[i].reverse != kmatches[i-1].reverse //change in direction
+         || q_delta-1>max_jump //long jump
+         || (kmatches[i].reverse==false && q_delta != t_delta)//direct and not same difference
+         || (kmatches[i].reverse==true && q_delta != -t_delta) ) { //reverse and not same difference 
 
       //length>min_length?
-        //dump
-      //move match start to next element
+      //std::cout<<"evaluating match in ["<<match_start<<"-"<<i-1<<"] "<<q_delta<<" "<<t_delta<<" "<<kmatches[i].reverse<<" "<<kmatches[i-1].reverse<<"||"<<(kmatches[i].reverse != kmatches[i-1].reverse)<<" "<<(q_delta-1>max_jump)<<" "<< (kmatches[i].reverse==false && q_delta != t_delta)<<" "<<(kmatches[i].reverse==true && q_delta != -t_delta)<<std::endl;
+      if (i-match_start>=min_length-K){
+        //TODO:dump
+        t_result r;
+        r.query_id=kmatches[match_start].q_position/KMATCH_POSITION_CHR_CNST;
+        r.target_id=kmatches[match_start].t_position/KMATCH_POSITION_CHR_CNST;
+        r.query_size=query_seqs[r.query_id].length;
+        r.qstart=kmatches[match_start].q_position%KMATCH_POSITION_CHR_CNST-1;//0-based
+        r.tstart=kmatches[match_start].t_position%KMATCH_POSITION_CHR_CNST-1;//0-based
+        r.len=kmatches[i-1].q_position - kmatches[match_start].q_position;
+        r.reverse=kmatches[match_start].reverse;
+        r.prob=1;
+        r.ident=1;
+        out_file.write((char *) &r,sizeof(r));
+        dumped++;
+      }
+      //move match start
+      match_start=i;
+    }
   }
-
+  out_file.close();
+  std::cout<<dumped<<" matches dumped"<<std::endl;
 }
 
 int main(int argc, char ** argv){
@@ -164,5 +198,5 @@ int main(int argc, char ** argv){
   kmatch.load_positions();
   kmatch.merge_positions();
   kmatch.clear_positions();
-  kmatch.dump_matches();
+  kmatch.dump_matching_blocks(argv[4],atoi(argv[5]),atoi(argv[6]));
 }
