@@ -1,4 +1,14 @@
 #include "kmatch/KMatch.h"
+#include <sys/time.h>
+#include <thread>
+#include <functional>
+
+void timed_log(std::string s){
+  struct timeval tp;
+  gettimeofday(&tp,NULL);
+  long int ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+  std::cout<<"TIME_LOG: "<<ms<<" - "<<s<<std::endl;
+};
 
 inline std::pair<int64_t,bool> str_to_kmer(const char * _str,uint8_t _K){
   int64_t key=0,rkey=0;
@@ -48,7 +58,7 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
   std::string line,seq;
   std::ifstream fasta(filename);
   seq_attributes_t seq_attr;
-  
+  timed_log(" Loading array ");
   uint64_t max_freq=1;//XXX: make this an argument!!!
   std::pair<uint64_t,bool> ckmer;
   int64_t chr_offset=0;
@@ -63,7 +73,8 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
         seqnames.push_back(seq_attr);
         const char * s=seq.c_str();
         for (uint64_t p=0;p<seq.size()+1-K;p++){
-          //TODO: this could well be parallel
+          //TODO: not parallel, idiot, just calculate the change in kmer value for a single character, if a character is invalid keep count of when it appeared. Kx Speedup in computing!!!
+          //TODO: further speedup? reserve all space first, choose a kmer value as threshold and separate kmers in different vectors, sort each and join them in the filtering step. (uses more memory)
           ckmer=str_to_kmer(s+p,K);
           kposv[kmer_index].kmer=ckmer.first;
           kposv[kmer_index].position=seq_index*KMATCH_POSITION_CHR_CNST+p+1;//1-based position
@@ -85,6 +96,7 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
   }
   fasta.close();
   std::cout<<"Kmer array with "<<kmer_index<<" elements created"<<std::endl;
+  timed_log(" Sorting array ");
   std::sort(kposv.begin(),kposv.end());
   std::cout<<"Kmer array sorted"<<std::endl;
   //TODO: allow only K elements, replace with KMATCH_NOKMER if an element is too high frequency?
@@ -102,8 +114,10 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
   std::cout<<"Kmer array filtered to "<<wi<<"elements"<<std::endl;
 }
 
-void KMatch::load_positions(){
+void KMatch::load_target_positions(){
   kmer_array_from_fasta(target_filename,target_positions,target_seqs);
+}
+void KMatch::load_query_positions(){
   kmer_array_from_fasta(query_filename,query_positions,query_seqs);
 }
 
@@ -160,6 +174,8 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
   int64_t q_delta, t_delta;
   uint64_t dumped=0;
   for (uint64_t i=1;i<kmsize ;i++){//do not check the last element, check it outside!
+    //TODO: to allow multi-matches just change i-1 for a back-search of the previous link in this match (i.e, go back till position[j] <position-max_jmp and if any point matches, use it to move forward.
+    //TODO: to allow for multi-matches the start register needs to change to a vector with some more variables.
     //if match breaks in this element
     q_delta=kmatches[i].q_position-kmatches[i-1].q_position;
     t_delta=kmatches[i].t_position-kmatches[i-1].t_position;
@@ -194,9 +210,18 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
 }
 
 int main(int argc, char ** argv){
+  timed_log(" START ");
   KMatch kmatch(argv[1],argv[2],atoi(argv[3]));
-  kmatch.load_positions();
+  timed_log(" load_positions() ");
+  std::thread q(&KMatch::load_query_positions,std::ref(kmatch));
+  std::thread t(&KMatch::load_target_positions,std::ref(kmatch));
+  q.join();
+  t.join();
+  timed_log(" merge_positions() ");
   kmatch.merge_positions();
+  timed_log(" clear_positions() ");
   kmatch.clear_positions();
+  timed_log(" dump_matching_blocks() ");
   kmatch.dump_matching_blocks(argv[4],atoi(argv[5]),atoi(argv[6]));
+  timed_log(" END ");
 }

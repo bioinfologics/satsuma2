@@ -56,7 +56,8 @@ inline int64_t str_to_kmer(const char * _str); //returns a canonical kmer with s
 class KMatch {
   public:
     KMatch(char * _target_filename, char * _query_filename, uint8_t _K);
-    void load_positions();//loads both kmer arrays
+    void load_query_positions();
+    void load_target_positions();
     void merge_positions();
     void clear_positions();
     void dump_matching_blocks(char * out_filename, int min_length, int max_gap);

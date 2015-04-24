@@ -1,5 +1,5 @@
 
-CPLUSPLUS	= g++ -O3
+CPLUSPLUS	= g++ -O3 -std=c++0x
 CC		= gcc -O3
 
 # Location of Xerces XML parser library:
@@ -19,7 +19,7 @@ SYS_LINK	+=
 
 SYS_LIBS	+= 
 
-SYS_WARN	+= -ansi -pedantic -Wno-long-long -Wno-unused-variable -Wno-unused-parameter
+SYS_WARN	+= -pedantic -Wno-long-long -Wno-unused-variable -Wno-unused-parameter
 
 
 # compiler options controlling C++ dialects:
