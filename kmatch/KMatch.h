@@ -42,6 +42,8 @@ class KMatch {
     KMatch(char * _target_filename, char * _query_filename, uint8_t _K);
     void load_positions();//loads both kmer arrays
     void merge_positions();
+    void clear_positions();
+    void dump_matching_blocks();
   private:
     uint8_t K;
     char * target_filename;
@@ -50,6 +52,7 @@ class KMatch {
     
     std::vector<seq_attributes_t> target_seqs, query_seqs;
     std::vector<kmer_positions_t> target_positions, query_positions;
+    std::vector<kmer_matches_t> kmatches;
 };
 
 #endif //KMATCH_INCLUDED
