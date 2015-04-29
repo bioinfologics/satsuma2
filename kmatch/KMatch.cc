@@ -65,21 +65,68 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
   uint32_t seq_index=0;
   uint64_t kmer_index=0;
   //while (!EOF)
+  const uint64_t KMER_MASK=( ((uint64_t)1)<<(K*2+1) )-1;
+  const uint64_t KMER_FIRSTOFFSET=(K-1)*2;
   std::cout<<"Loading fasta "<<filename<<" into kmer array"<<std::endl;
   while ( getline (fasta, line)){
     if ( (line.size()>0 && line[0]=='>') || fasta.eof()){
         if (seq.size()>0) {seq_attr.length=seq.size();
-        kposv.resize(kposv.size()+seq.size()+1-K);
+        kposv.resize(kposv.size()+seq.size()+1-K);//XXX: this could be optimised to at least grow N positions if growth needed, so it doesn't grow in every small sequence
         seqnames.push_back(seq_attr);
         const char * s=seq.c_str();
+        //TODO: further speedup? reserve all space first, choose a kmer value as threshold and insert larger kmers fromt the top, smaller or equal from the bottom, sort the two parts (frontier will be the next-insertion point) independently and join them in the filtering step.
+        //TODO: not parallel, idiot, just calculate the change in kmer value for a single character, if a character is invalid keep count of when it appeared. Kx Speedup in computing!!!
+        int64_t last_unknown=-1;
+        uint64_t fkmer=0,rkmer=0;
         for (uint64_t p=0;p<seq.size()+1-K;p++){
-          //TODO: not parallel, idiot, just calculate the change in kmer value for a single character, if a character is invalid keep count of when it appeared. Kx Speedup in computing!!!
-          //TODO: further speedup? reserve all space first, choose a kmer value as threshold and separate kmers in different vectors, sort each and join them in the filtering step. (uses more memory)
-          ckmer=str_to_kmer(s+p,K);
-          kposv[kmer_index].kmer=ckmer.first;
-          kposv[kmer_index].position=seq_index*KMATCH_POSITION_CHR_CNST+p+1;//1-based position
-          if (ckmer.second) kposv[kmer_index].position=-kposv[kmer_index].position;
+          //fkmer: grows from the right (LSB) 
+          //rkmer: grows from the left (MSB)
+          //TODO: update kmer value
+          switch (s[p]) {
+            case 'A':
+            case 'a':
+              fkmer=( (fkmer<<2) + 0 ) & KMER_MASK;
+              rkmer=(rkmer>>2) + 3<<KMER_FIRSTOFFSET ;
+              break;
+            case 'C':
+            case 'c':
+              fkmer=( (fkmer<<2) + 1 ) & KMER_MASK;
+              rkmer=(rkmer>>2) + 2<<KMER_FIRSTOFFSET ;
+              break;
+            case 'G':
+            case 'g':
+              fkmer=( (fkmer<<2) + 2 ) & KMER_MASK;
+              rkmer=(rkmer>>2) + 1<<KMER_FIRSTOFFSET ;
+              break;
+            case 'T':
+            case 't':
+              fkmer=( (fkmer<<2) + 3 ) & KMER_MASK;
+              rkmer=(rkmer>>2) + 0<<KMER_FIRSTOFFSET ;
+              break;
+            default:
+              fkmer=( (fkmer<<2) + 0 ) & KMER_MASK;
+              rkmer=(rkmer>>2) + 3<<KMER_FIRSTOFFSET;
+              last_unknown=p;
+              break;
+          }
+          //TODO: last unknown passed by?
+          if (last_unknown+K<=p){
+            //result is min(kmer/rkmer), and set position / reverse
+            if (fkmer>rkmer){
+              kposv[kmer_index].kmer=fkmer;
+              kposv[kmer_index].position=kmer_index+1;//1-based position
+            } else {
+              kposv[kmer_index].kmer=rkmer;
+              kposv[kmer_index].position=-(kmer_index+1);//1-based position
+            }
+          }else{
+            //result is NOKMER
+            kposv[kmer_index].kmer=KMATCH_NOKMER;
+            kposv[kmer_index].position=kmer_index+1;//1-based position
+
+          }
           kmer_index++;
+
         }
       }
       if (line.size()>0 && line[0]=='>'){
@@ -192,9 +239,10 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
         r.query_id=kmatches[match_start].q_position/KMATCH_POSITION_CHR_CNST;
         r.target_id=kmatches[match_start].t_position/KMATCH_POSITION_CHR_CNST;
         r.query_size=query_seqs[r.query_id].length;
-        r.qstart=kmatches[match_start].q_position%KMATCH_POSITION_CHR_CNST-1;//0-based
-        r.tstart=kmatches[match_start].t_position%KMATCH_POSITION_CHR_CNST-1;//0-based
-        r.len=kmatches[i-1].q_position - kmatches[match_start].q_position;
+        //XXX:review position and K displacement when reverse, etc
+        r.qstart=kmatches[match_start].q_position%KMATCH_POSITION_CHR_CNST-K-1;//0-based
+        r.tstart=kmatches[match_start].t_position%KMATCH_POSITION_CHR_CNST-K-1;//0-based
+        r.len=kmatches[i-1].q_position - kmatches[match_start].q_position+K;
         r.reverse=kmatches[match_start].reverse;
         r.prob=1;
         r.ident=1;
