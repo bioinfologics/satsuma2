@@ -7,6 +7,7 @@
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
 #include <cstdlib>
+#include "kmatch/matchresult.h"
 
 #define KMATCH_MAX_FREQ 4
 #define KMATCH_NUC_A 0
@@ -38,18 +39,6 @@ typedef struct {
   std::string name;
   uint64_t length;
 } seq_attributes_t;
-
-typedef struct {
-  unsigned long int query_id;
-  unsigned long int target_id; 
-  unsigned long int query_size;
-  unsigned long int qstart;
-  unsigned long int tstart; 
-  unsigned long int len;
-  bool reverse;
-  double prob;
-  double ident;
-} t_result;
 
 inline int64_t str_to_kmer(const char * _str); //returns a canonical kmer with sign indicating position, KMATCH_NOKMER if invalid input
 
