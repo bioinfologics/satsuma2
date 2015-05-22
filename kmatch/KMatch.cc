@@ -219,8 +219,8 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
       if (i-match_start>=min_length-K){
         //TODO:dump
         t_result r;
-        r.query_id=kmatches[match_start].q_position/KMATCH_POSITION_CHR_CNST;
-        r.target_id=kmatches[match_start].t_position/KMATCH_POSITION_CHR_CNST;
+        r.query_id=kmatches[match_start].q_position/KMATCH_POSITION_CHR_CNST-1;//0-based
+        r.target_id=kmatches[match_start].t_position/KMATCH_POSITION_CHR_CNST-1;//0-based
         r.query_size=query_seqs[r.query_id].length;
         //XXX:review position and K displacement when reverse, etc
         r.qstart=kmatches[match_start].q_position%KMATCH_POSITION_CHR_CNST-1;//0-based
