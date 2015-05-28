@@ -21,7 +21,7 @@
 #include "analysis/WorkQueue.h"
 
 
-WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, string _slave_cmd, int _slave_count){
+WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, int _slave_count){
   minLen=_minLen;
   queryChunk=_queryChunk;
   query_filename=_sQuery;
@@ -29,7 +29,6 @@ WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarg
   target_filename=_sTarget;
   minProb=_minProb;
   sigCutoff=_sigCutoff;
-  slave_cmd=_slave_cmd;
   slave_count=_slave_count;
   gethostname(master_hostname, sizeof(master_hostname));
   shutdown_status=0;
@@ -287,9 +286,9 @@ void WorkQueue::setup_queue(){
   //spawns each slave with its slave_id
   start_listener();  
   stringstream cmd;
-  cmd << "echo '";
+  cmd << "echo '" << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave";
   for (int i=0;i<slave_count;i++){
-    cmd << slave_cmd << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
+    cmd << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
     cmd << " -q " << query_filename << " -t " << target_filename;
     cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << " &";
     if (i%8==7 || i==slave_count-1){
@@ -297,7 +296,7 @@ void WorkQueue::setup_queue(){
       cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
       system(cmd.str().c_str());
       cmd.str("");
-      cmd << "echo '";
+      cmd << "echo '" << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave";
     }
   }
 }

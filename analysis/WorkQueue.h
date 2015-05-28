@@ -33,7 +33,7 @@ typedef struct {
 //TODO: make the serve function a method, use a wrapper to call the method from the thread execution
 class WorkQueue {
   public:
-    WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, string slave_cmd, int _slave_count);
+    WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, int _slave_count);
     void setup_queue();
     void add_pair(int targetFrom, int targetTo, int queryFrom, int queryTo, bool fast);
     unsigned int pending_pair_count();
@@ -58,7 +58,6 @@ class WorkQueue {
     double minProb, sigCutoff;
     char master_hostname[1024];//XXX: hardcoded!!!
     int port;
-    string slave_cmd;
 
     pthread_mutex_t pairs_mutex;
     std::vector<t_pair> pairs; //XXX: beware, all access to this should be mutexed!!!

@@ -175,7 +175,6 @@ int main( int argc, char** argv )
   commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
   commandArg<bool> lsfCmmdIni("-lsf_ini","submit jobs to LSF", false);
   commandArg<int> perCmmd("-m","number of jobs per block", 32);
-  commandArg<int> slavepathCmmd("-slave_path","full path to the slave binary");
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
   commandArg<bool> nogoCmmd("-nosubmit","do not run jobs", false);
   commandArg<bool> nowaitCmmd("-nowait","do not wait for jobs", false);
@@ -219,7 +218,6 @@ int main( int argc, char** argv )
   P.registerArg(cutoffCmmd);
   P.registerArg(cutoffSeedCmmd);
   P.registerArg(perCmmd);
-  P.registerArg(slavepathCmmd);
   P.registerArg(slavesCmmd);
   P.registerArg(resumeCmmd);
   P.registerArg(seedCmmd);
@@ -244,7 +242,6 @@ int main( int argc, char** argv )
   int nBlocks = P.GetIntValueFor(blockCmmd);
   int nBlocksIni = P.GetIntValueFor(blockIniCmmd);
   int perBlock = P.GetIntValueFor(perCmmd);
-  string slave_path = P.GetStringValueFor(slavepathCmmd);
   int slave_count = P.GetIntValueFor(slavesCmmd);
   bool bLSF = P.GetBoolValueFor(lsfCmmd);
   bool bLSFIni = P.GetBoolValueFor(lsfCmmdIni);
@@ -325,6 +322,7 @@ int main( int argc, char** argv )
   //==================================================================
   //ALG: create filtered seeds
   if (!bFilter && seedFile == "") {
+    /*
     seedFile = output + "/xcorr_aligns.seeds.out";
 
     string cmd = exec_dir;
@@ -338,9 +336,40 @@ int main( int argc, char** argv )
     cmd += theDistance;
     cmd += " -w ";
     cmd += seedwidth;
-
-    cout << "Running seed pre-filter " << cmd << endl;
-    system(cmd.c_str());
+    */
+    cout<< "Path for Satsuma2: '"<<std::getenv("SATSUMA2_PATH")<<"'"<<endl;
+    string s2p(std::getenv("SATSUMA2_PATH"));
+    string current_path(std::getenv("PWD"));
+    for (long long i=11; i<32; i+=2){
+      seedFile = output + "/kmatch_results.k"+ to_string(i);
+      string cmd;
+      cmd = "echo \"cd " + current_path + ";"+ s2p + "/KMatch " + sQuery + " " + sTarget;
+      cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1);
+      cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
+      cout << "Running seed pre-filter " << cmd << endl;
+      system(cmd.c_str());
+    }
+    //TODO:wait for the kmatches to finish
+    cout << "Waiting for seed pre-filters..." << endl;
+    seedFile = output + "/kmatch_results.k";
+    int finished=0;
+    while (finished<11){
+      sleep(3);
+      for (long long i=11; i<32; i+=2){
+        FILE * pProbe = fopen((seedFile+to_string(i)+".finished").c_str(), "r");
+        if (pProbe != NULL) {
+          fclose(pProbe);
+          cout<<"loading results for k="<<i<<endl;
+          //TODO process results
+          string cmd="rm "+seedFile+to_string(i)+".finished";
+          system(cmd.c_str());
+          finished++;
+        }
+      }
+    }
+    cout << "Seed pre-filters finished" << endl;
+    //XXX:aborting the run!
+    return -1;
   }
   
 
@@ -348,7 +377,7 @@ int main( int argc, char** argv )
 
   //ALG: spawn slaves
 
-  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_path, slave_count);
+  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_count);
   wq.setup_queue();//XXX totally wrong to name the slaves count like that!
 
   

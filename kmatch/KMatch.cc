@@ -38,7 +38,7 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
     getline (fasta, line);
     if ( (line.size()>0 && line[0]=='>') || fasta.eof()){
       if (seq.size()>0) {//There is a previous sequence, process it!
-        std::cout<<"processing sequence"<<std::endl;
+        //std::cout<<"processing sequence"<<std::endl;
         seq_attr.length=seq.size();
         kposv.resize(kposv.size()+seq.size()+1-K);//XXX: this could be optimised to at least grow N positions if growth needed, so it doesn't grow in every small sequence
         seqnames.push_back(seq_attr);
@@ -110,7 +110,7 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
       if (fasta.eof()){
         break;
       } else {//init new seq_attributes;
-        std::cout<<"Loading sequence '"<<line<<"'"<<std::endl;
+        //std::cout<<"Loading sequence '"<<line<<"'"<<std::endl;
         seq_attr.name=line;
         seq="";
         seq_index++;
@@ -250,18 +250,18 @@ int main(int argc, char ** argv){
     std::cout<<"KMatch only accepts odd K values, please try again"<<std::endl;
     return 1;
   }
-  timed_log(" START ");
+  //timed_log(" START ");
   KMatch kmatch(argv[1],argv[2],atoi(argv[3]));
-  timed_log(" load_positions() ");
+  //timed_log(" load_positions() ");
   std::thread q(&KMatch::load_query_positions,std::ref(kmatch));
   std::thread t(&KMatch::load_target_positions,std::ref(kmatch));
   q.join();
   t.join();
-  timed_log(" merge_positions() ");
+  //timed_log(" merge_positions() ");
   kmatch.merge_positions();
-  timed_log(" clear_positions() ");
+  //timed_log(" clear_positions() ");
   kmatch.clear_positions();
-  timed_log(" dump_matching_blocks() ");
+  //timed_log(" dump_matching_blocks() ");
   kmatch.dump_matching_blocks(argv[4],atoi(argv[5]),atoi(argv[6]));
-  timed_log(" END ");
+  //timed_log(" END ");
 }
