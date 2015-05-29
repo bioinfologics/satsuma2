@@ -251,7 +251,7 @@ int main(int argc, char ** argv){
     return 1;
   }
   //timed_log(" START ");
-  KMatch kmatch(argv[1],argv[2],atoi(argv[3]));
+  KMatch kmatch(argv[2],argv[1],atoi(argv[3]));
   //timed_log(" load_positions() ");
   std::thread q(&KMatch::load_query_positions,std::ref(kmatch));
   std::thread t(&KMatch::load_target_positions,std::ref(kmatch));

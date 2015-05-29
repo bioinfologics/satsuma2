@@ -231,6 +231,7 @@ class MultiMatches
   }
 
   void Collapse();
+  void LengthFilter(uint64_t);
 
  private:
   int Update(svec<string> & names, svec<int> & size, const string & n, int s);

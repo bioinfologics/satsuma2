@@ -1,5 +1,6 @@
 
 CPLUSPLUS	= g++ -O3 -std=c++0x
+#CPLUSPLUS	= g++ -g -std=c++0x
 CC		= gcc -O3
 
 # Location of Xerces XML parser library:

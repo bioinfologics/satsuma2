@@ -461,3 +461,26 @@ void MultiMatches::Collapse()
 
 
 }
+
+void MultiMatches::LengthFilter(uint64_t min_length)
+{
+  int i;
+  svec<SingleMatch> tmp;
+  tmp.resize(m_matches.isize());
+  int k = 0;
+
+  cout << "Matches before length filtering: " << m_count << endl;
+  for (i=0; i<m_count; i++) {
+    if (m_matches[i].GetLength()>=min_length){
+      tmp[k] = m_matches[i];
+      k++;
+    }
+  }
+
+  m_count = k;
+  tmp.resize(k);
+  m_matches = tmp;
+  cout << "Matches after length filtering (>="<<min_length<<") :  " << m_count << endl;
+
+
+}

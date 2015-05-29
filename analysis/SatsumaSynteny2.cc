@@ -318,7 +318,45 @@ int main( int argc, char** argv )
     }
   }
 
+  //==================================================================
 
+
+  //ALG: setting up GRID
+  vecDNAVector target, query;
+
+  query.Read(sQuery);
+  target.Read(sTarget);
+
+  cout << "Setting up grid." << endl;
+  GridSearch grid(targetChunk, blocksPerPixel);
+  cout << "Preparing..." << endl;
+  grid.SetUp(target, query);
+  
+  cout << "Initializing multimatches..." << endl;
+  svec<string> queryNames, targetNames;
+
+  for (i=0; i<target.isize(); i++)
+    targetNames.push_back(target.NameClean(i));
+  for (i=0; i<query.isize(); i++)
+    queryNames.push_back(query.NameClean(i));
+  matches.SetNames(queryNames, targetNames);
+
+
+  for (i=0; i<target.isize(); i++) {
+    matches.SetTargetSize(i, target[i].isize());
+  }
+  for (i=0; i<query.isize(); i++)
+    matches.SetQuerySize(i, query[i].isize());
+  cout << "Done." << endl;
+  target.clear();
+  query.clear();
+  
+  
+  int collectCounter = 0;
+  bool bNoChain = false;
+
+
+  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_count);
   //==================================================================
   //ALG: create filtered seeds
   if (!bFilter && seedFile == "") {
@@ -361,6 +399,7 @@ int main( int argc, char** argv )
           fclose(pProbe);
           cout<<"loading results for k="<<i<<endl;
           //TODO process results
+          wq.results_from_file((seedFile+to_string(i)).c_str());
           string cmd="rm "+seedFile+to_string(i)+".finished";
           system(cmd.c_str());
           finished++;
@@ -368,44 +407,21 @@ int main( int argc, char** argv )
       }
     }
     cout << "Seed pre-filters finished" << endl;
-    //XXX:aborting the run!
-    return -1;
   }
   
 
-  //==================================================================
-
   //ALG: spawn slaves
 
-  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_count);
-  wq.setup_queue();//XXX totally wrong to name the slaves count like that!
 
   
 
 
-  //ALG: setting up GRID
-  vecDNAVector target, query;
-
-  query.Read(sQuery);
-  target.Read(sTarget);
-
-  cout << "Setting up grid." << endl;
-  GridSearch grid(targetChunk, blocksPerPixel);
-  cout << "Preparing..." << endl;
-  grid.SetUp(target, query);
-
-  cout << "Done." << endl;
-  target.clear();
-  query.clear();
-
-  //ALG: adding the seeds to the workqueue
+  //ALG: processing the seeds.
   
-  int collectCounter = 0;
-  bool bNoChain = false;
-  cout << "Loading seeds from " << seedFile << endl;
-  matches.Read(seedFile);
+  wq.collect_new_matches(matches); //matches.Read(seedFile);
   matches.Sort();
   matches.Collapse();
+  matches.LengthFilter(24);//XXX:hardcoded lenght filter-->terrible!!!
 
   MultiMatches tmp;
   if (bDup)
@@ -421,7 +437,8 @@ int main( int argc, char** argv )
 
   //=============================================================
 
-
+  cout << "SATSUMA: Launching slaves, date and time: " << GetTimeStatic() << endl;
+  wq.setup_queue();//XXX totally wrong to name the slaves count like that!
   
   //MultiMatches workMatches;
   cout << "SATSUMA: Entering main search loop, date and time: " << GetTimeStatic() << endl;

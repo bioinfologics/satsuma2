@@ -281,14 +281,23 @@ void WorkQueue::close_queue(){
   shutdown_status=1;
 }
 
+void WorkQueue::results_from_file(const char * filename){
+  FILE * rf=fopen(filename,"r");
+  t_result r;
+  while (fread(&r,sizeof(r),1,rf)==1){
+    resultsv.push_back(r);
+  }
+  fclose(rf);
+}
+
 void WorkQueue::setup_queue(){
   //TODO: avoid all hardcoding and support PBS/LSF
   //spawns each slave with its slave_id
   start_listener();  
   stringstream cmd;
-  cmd << "echo '" << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave";
+  cmd << "echo cd $PWD ';";
   for (int i=0;i<slave_count;i++){
-    cmd << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
+    cmd  << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
     cmd << " -q " << query_filename << " -t " << target_filename;
     cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << " &";
     if (i%8==7 || i==slave_count-1){
@@ -296,7 +305,7 @@ void WorkQueue::setup_queue(){
       cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
       system(cmd.str().c_str());
       cmd.str("");
-      cmd << "echo '" << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave";
+      cmd << "echo cd $PWD ';";
     }
   }
 }
