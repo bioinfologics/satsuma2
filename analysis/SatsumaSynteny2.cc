@@ -168,29 +168,16 @@ int main( int argc, char** argv )
   commandArg<int> lIntCmmd("-l","minimum alignment length", 0);
   commandArg<int> qChunkCmmd("-q_chunk","query chunk size", 4096);
   commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
-  commandArg<int> qSeedChunkCmmd("-q_chunk_seed","query chunk size (seed)", 8192);
-  commandArg<int> tSeedChunkCmmd("-t_chunk_seed","target chunk size (seed)", 8192);
   commandArg<int> blockCmmd("-n","number of processes", 1);
-  commandArg<int> blockIniCmmd("-ni","number of initial search blocks", -1);
   commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
-  commandArg<bool> lsfCmmdIni("-lsf_ini","submit jobs to LSF", false);
   commandArg<int> perCmmd("-m","number of jobs per block", 32);
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
-  commandArg<bool> nogoCmmd("-nosubmit","do not run jobs", false);
-  commandArg<bool> nowaitCmmd("-nowait","do not wait for jobs", false);
-  commandArg<bool> chainCmmd("-chain_only","only chain the matches", false);
-  commandArg<bool> refineCmmd("-refine_only","only refine the matches", false);
   commandArg<bool> refineNotCmmd("-do_refine","refinment steps", false);
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.99999);
-  commandArg<bool> protCmmd("-proteins","align in protein space", false);
   commandArg<double> cutoffCmmd("-cutoff","signal cutoff", 1.8);
-  commandArg<double> cutoffSeedCmmd("-cutoff_seed","signal cutoff (seed)", 2.0);
-  commandArg<string> resumeCmmd("-resume","resumes w/ the output of a previous run (xcorr*data)", "");
   commandArg<string> seedCmmd("-seed","loads seeds and runs from there (xcorr*data)", "");
   commandArg<int> blockPixelCmmd("-pixel","number of blocks per pixel", 24);
   commandArg<bool> filterCmmd("-nofilter","do not pre-filter seeds (slower runtime)", false);
-  commandArg<string> distanceCmmd("-seeddist","distance between pre-filter seeds (increase for close genomes)", "1");
-  commandArg<string> seedWidthCmmd("-filterwidth","width of the seed filter", "2");
   commandArg<bool> dupCmmd("-dups","allow for duplications in the query sequence", false);
 
 
@@ -202,72 +189,40 @@ int main( int argc, char** argv )
   P.registerArg(lIntCmmd);
   P.registerArg(tChunkCmmd);
   P.registerArg(qChunkCmmd);
-  P.registerArg(tSeedChunkCmmd);
-  P.registerArg(qSeedChunkCmmd);
   P.registerArg(blockCmmd);
-  P.registerArg(blockIniCmmd);
   P.registerArg(lsfCmmd);
-  P.registerArg(lsfCmmdIni);
-  P.registerArg(nogoCmmd);
-  P.registerArg(nowaitCmmd);
-  P.registerArg(chainCmmd);
-  P.registerArg(refineCmmd);
   P.registerArg(refineNotCmmd);
   P.registerArg(probCmmd);
-  P.registerArg(protCmmd);
   P.registerArg(cutoffCmmd);
-  P.registerArg(cutoffSeedCmmd);
   P.registerArg(perCmmd);
   P.registerArg(slavesCmmd);
-  P.registerArg(resumeCmmd);
   P.registerArg(seedCmmd);
   P.registerArg(blockPixelCmmd);
   P.registerArg(filterCmmd);
-  P.registerArg(distanceCmmd);
   P.registerArg(dupCmmd);
-  P.registerArg(seedWidthCmmd);
 
   P.parse();
 
   string sQuery = P.GetStringValueFor(aStringCmmd);
   string sTarget = P.GetStringValueFor(bStringCmmd);
   string output = P.GetStringValueFor(oStringCmmd);
-  string prevRun = P.GetStringValueFor(resumeCmmd);
   string seedFile = P.GetStringValueFor(seedCmmd);
   int minLen = P.GetIntValueFor(lIntCmmd);
   int targetChunk = P.GetIntValueFor(tChunkCmmd);
   int queryChunk = P.GetIntValueFor(qChunkCmmd);
-  int targetChunkSeed = P.GetIntValueFor(tSeedChunkCmmd);
-  int queryChunkSeed = P.GetIntValueFor(qSeedChunkCmmd);
   int nBlocks = P.GetIntValueFor(blockCmmd);
-  int nBlocksIni = P.GetIntValueFor(blockIniCmmd);
   int perBlock = P.GetIntValueFor(perCmmd);
   int slave_count = P.GetIntValueFor(slavesCmmd);
   bool bLSF = P.GetBoolValueFor(lsfCmmd);
-  bool bLSFIni = P.GetBoolValueFor(lsfCmmdIni);
-  bool bNogo = P.GetBoolValueFor(nogoCmmd);
-  bool bNowait = P.GetBoolValueFor(nowaitCmmd);
-  bool bChainOnly = P.GetBoolValueFor(chainCmmd);
   double minProb = P.GetDoubleValueFor(probCmmd);
-  bool bProteins = P.GetBoolValueFor(protCmmd);
-  bool bRefOnly = P.GetBoolValueFor(refineCmmd);
   bool bNoRef = P.GetBoolValueFor(refineNotCmmd);
   double sigCutoff = P.GetDoubleValueFor(cutoffCmmd);
-  double sigCutoffSeed = P.GetDoubleValueFor(cutoffSeedCmmd);
   int blocksPerPixel = P.GetIntValueFor(blockPixelCmmd);
   bool bFilter = P.GetBoolValueFor(filterCmmd);
-  string theDistance = P.GetStringValueFor(distanceCmmd);
-  string seedwidth = P.GetStringValueFor(seedWidthCmmd);
   bool bDup = P.GetBoolValueFor(dupCmmd);
   MultiMatches matches;
   
-  if (nBlocksIni == -1)
-    nBlocksIni = nBlocks;
   int i, j;
-
-  //Terribly bad fix!
-
-
 
 
   cout << "SATSUMA: Welcome to SatsumaSynteny! Current date and time: " << GetTimeStatic() << endl;
@@ -360,21 +315,6 @@ int main( int argc, char** argv )
   //==================================================================
   //ALG: create filtered seeds
   if (!bFilter && seedFile == "") {
-    /*
-    seedFile = output + "/xcorr_aligns.seeds.out";
-
-    string cmd = exec_dir;
-    cmd += "FilterGridSeeds -t ";
-    cmd += sTarget;
-    cmd += " -q ";
-    cmd += sQuery;
-    cmd += " -o ";
-    cmd += seedFile;
-    cmd += " -distance ";
-    cmd += theDistance;
-    cmd += " -w ";
-    cmd += seedwidth;
-    */
     cout<< "Path for Satsuma2: '"<<std::getenv("SATSUMA2_PATH")<<"'"<<endl;
     string s2p(std::getenv("SATSUMA2_PATH"));
     string current_path(std::getenv("PWD"));
@@ -398,7 +338,6 @@ int main( int argc, char** argv )
         if (pProbe != NULL) {
           fclose(pProbe);
           cout<<"loading results for k="<<i<<endl;
-          //TODO process results
           wq.results_from_file((seedFile+to_string(i)).c_str());
           string cmd="rm "+seedFile+to_string(i)+".finished";
           system(cmd.c_str());
@@ -455,10 +394,9 @@ int main( int argc, char** argv )
   //ALG: main loop
   while (true) {
     //ALG: wait for slaves to finish, and update the matches count
-    while (pending_matches == 0  || wq.pending_pair_count() >= slave_count * 4 ){
+    while (pending_matches == 0  || wq.pending_pair_count() >= slave_count * 4 )    {
         pending_matches+=wq.collect_new_matches(matches);
         cout<<"Main loop waiting (pending_matches="<<pending_matches<<" pending_pairs="<<wq.pending_pair_count()<<") ..."<<endl;
-        sleep(1); //XXX: needs to have something to do if no new matches because none was good
     }
     pending_matches=0;
     
