@@ -168,10 +168,10 @@ int main( int argc, char** argv )
   commandArg<int> lIntCmmd("-l","minimum alignment length", 0);
   commandArg<int> qChunkCmmd("-q_chunk","query chunk size", 4096);
   commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
+  commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
   commandArg<int> blockCmmd("-n","number of processes", 1);
   commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
   commandArg<int> perCmmd("-m","number of jobs per block", 32);
-  commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
   commandArg<bool> refineNotCmmd("-do_refine","refinment steps", false);
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.99999);
   commandArg<double> cutoffCmmd("-cutoff","signal cutoff", 1.8);
@@ -308,7 +308,6 @@ int main( int argc, char** argv )
   query.clear();
   
   
-  int collectCounter = 0;
   bool bNoChain = false;
 
 
@@ -346,24 +345,13 @@ int main( int argc, char** argv )
     cout << "Seed pre-filters finished" << endl;
   }
   
-  //ALG: processing the seeds.
+  //ALG: processing the seeds. Why is this different to just process matches? (besides the filter)
   
+  unsigned long int new_matches_count;
   wq.collect_new_matches(matches); //matches.Read(seedFile);
   matches.Sort();
   matches.Collapse();
   matches.LengthFilter(24);//XXX:hardcoded lenght filter-->terrible!!!
-
-  MultiMatches tmp;
-  if (bDup)
-    RunMatchDynProgMult(tmp, matches);
-  else
-    RunMatchDynProg(tmp, matches);
-
-  bNoChain = true;
-  cout << "Done!" << endl;
-  matches = tmp;
-
-
 
   //=============================================================
 
@@ -377,104 +365,38 @@ int main( int argc, char** argv )
   int superExitCounter = 0;
   int superExitCounterThresh = 20;
   int superExitCounterNot = 0;
-  int counter = 0;
-  int plus_counter = 0;
-
-  int last_pair_in_current_batch=0;
-  unsigned long int pending_matches=1;//XXX change this to a meaningfull value
+  int targets_queue_size=nBlocks*slave_count*3;
   //ALG: main loop
   while (true) {
-    //ALG: wait for slaves to finish, and update the matches count
-    while (pending_matches == 0  || wq.pending_pair_count() >= slave_count * 4 )    {
-        pending_matches+=wq.collect_new_matches(matches);
-        cout<<"Main loop waiting (pending_matches="<<pending_matches<<" pending_pairs="<<wq.pending_pair_count()<<") ..."<<endl;
-    }
-    pending_matches=0;
-    
-
-    bool bSetUp = false;
+    //TODO: ALG: collect matches (get count of tasks and results)
+    uint64_t pending_matches=wq.collect_new_matches(matches);
+    cout<<"Main loop waiting (pending_matches="<<pending_matches<<" pending_pairs="<<wq.pending_pair_count()<<") ..."<<endl;
 
     //ALG: if new matches
     if (matches.GetMatchCount() - last > 0) {
-      bSetUp = true;
-      
       //ALG: chain matches
       cout << "Running the chaining step..." << endl;
-      
       MultiMatches chained;
       matches.Sort();
-
-      if (!bNoChain) {
-        if (bDup)
-          RunMatchDynProgMult(chained, matches);
-        else
-          RunMatchDynProg(chained, matches);
-      } else {
-        chained = matches;
-        bNoChain = false;
-      }
-
-      counter++;
-
-      int startMatches = chained.GetMatchCount();
+      if (bDup)
+        RunMatchDynProgMult(chained, matches);
+      else
+        RunMatchDynProg(chained, matches);
       cout << "Total matches: " << chained.GetMatchCount() << endl;
       matches = chained;
-
       SyntenyInterpolator inter;
       inter.Interpolate(chained); 
       cout << "Total matches (interpolated): " << chained.GetMatchCount() << endl;
-
-      grid.ClearTargetWeights();
-
-      //ALG: for each chained match
-      int lastY1 = -1;
-      int lastY2 = -1;
-      cout<<"Considering "<<chained.GetMatchCount()<<" matches..."<<endl;
-      for (i=0; i<chained.GetMatchCount(); i++) {
-        const SingleMatch & m = chained.GetMatch(i);
-
-        int x1 = m.GetStartTarget();
-        int y1 = m.GetStartQuery();
-        int x2 = m.GetStartTarget() + m.GetLength();
-        int y2 = m.GetStartQuery() + m.GetLength();
-
-        if (m.IsRC()) {
-          int s = chained.GetQuerySize(m.GetQueryID());
-          int tmp = y1;
-          y1 = s - y2;
-          y2 = s - tmp;
-        }
-
-        if (x1 < 0 || x2 < 0 || y1 < 0 || y2 < 0)
-          continue;
-        if (x2 >= chained.GetTargetSize(m.GetTargetID()) ||
-            y1 >= chained.GetQuerySize(m.GetQueryID()) ||
-            y2 >= chained.GetQuerySize(m.GetQueryID())) {
-          continue;
-        }
-        //ALG: consider 
-        //cout << "Considering." << endl;
-        grid.ConsiderTargets(m.GetTargetID(), x1, x2, m.GetQueryID(), y1, y2, m.GetIdentity());
-        lastY1 = y1;
-        lastY2 = y2;
-      }
-      cout<<"Matches considered."<<endl;
-
-
-      plus_counter++;
-
+      cout << "Updating grid's Target Weights" << endl;
+      
+      grid.UpdateTargetWeights(chained);
 
     }
-    //ALG: collect targets
-    last = matches.GetMatchCount();
-    svec<GridTarget> newTargets;
-    collectCounter++;
-    int seedPlus = 0;
+    //TODO: ALG: collect targets to fill in the queue
     cout << "Collecting." << endl;
-    //int realTargets = grid.CollectTargets(newTargets, nBlocks * perBlock, seedPlus);
-    //TODO: ckech the size of the queue here, implement the proposed changes
-    nBlocks=4*slave_count;
-    int realTargets = grid.CollectTargets(newTargets, 4*slave_count, seedPlus);
+    svec<GridTarget> newTargets;
+    //TODO: check the size of the queue here, implement the proposed changes
+    int realTargets = grid.CollectTargets(newTargets, 4*slave_count);
     cout << "Targets retrieved: " << newTargets.isize() << endl;
     cout << "Ready to re-feed." << endl;
 
@@ -482,7 +404,7 @@ int main( int argc, char** argv )
 
     int giveUpThresh = (nBlocks * perBlock)/4+1;
 
-    //ALG: check end condition
+    //TODO: ALG: check end condition
     if (newTargets.isize() >= nBlocks * perBlock)
       superExitCounterNot++;
 
@@ -519,8 +441,7 @@ int main( int argc, char** argv )
     }
 
 
-    // Check for alive processesss.
-    //ALG: distribute the work in blocks 
+    //TODO: ALG: distribute the work in blocks 
 
     for (i=0; i<newTargets.isize(); i++) {
       int to = i + perBlock;

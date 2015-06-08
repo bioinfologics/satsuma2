@@ -358,9 +358,43 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
 }
 
 
+void GridSearch::UpdateTargetWeights(MultiMatches & matches){
+      ClearTargetWeights();
+
+      int lastY1 = -1;
+      int lastY2 = -1;
+      cout<<"Considering "<<matches.GetMatchCount()<<" matches..."<<endl;
+      for (int i=0; i<matches.GetMatchCount(); i++) {
+        const SingleMatch & m = matches.GetMatch(i);
+
+        int x1 = m.GetStartTarget();
+        int y1 = m.GetStartQuery();
+        int x2 = m.GetStartTarget() + m.GetLength();
+        int y2 = m.GetStartQuery() + m.GetLength();
+
+        if (m.IsRC()) {
+          int s = matches.GetQuerySize(m.GetQueryID());
+          int tmp = y1;
+          y1 = s - y2;
+          y2 = s - tmp;
+        }
+
+        if (x1 < 0 || x2 < 0 || y1 < 0 || y2 < 0)
+          continue;
+        if (x2 >= matches.GetTargetSize(m.GetTargetID()) ||
+            y1 >= matches.GetQuerySize(m.GetQueryID()) ||
+            y2 >= matches.GetQuerySize(m.GetQueryID())) {
+          continue;
+        }
+        ConsiderTargets(m.GetTargetID(), x1, x2, m.GetQueryID(), y1, y2, m.GetIdentity());
+        lastY1 = y1;
+        lastY2 = y2;
+      }
+      cout<<"Matches considered."<<endl;
+}
 
 
-int GridSearch::CollectTargets(svec<GridTarget> & targets, int n, int nSeeds)
+int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
 {
   int i, j;
 
@@ -393,7 +427,7 @@ int GridSearch::CollectTargets(svec<GridTarget> & targets, int n, int nSeeds)
 
   if (n < targets.isize()) {
     cout << "Downsize to " << n << endl;
-    targets.resize(n-nSeeds);
+    targets.resize(n);
   }
 
   for (i=0; i<targets.isize(); i++) {

@@ -3,6 +3,7 @@
 
 
 #include "analysis/SeqChunk.h"
+#include "analysis/SequenceMatch.h"
 
 
 class GridSequence
@@ -368,7 +369,7 @@ class GridSearch
   
   int NTargetChunks() const {return m_targetChunks.isize();}
   int NQueryChunks() const {return m_queryChunks.isize();}
-
+  void UpdateTargetWeights(MultiMatches & matches);
   void ConsiderTargets(int targetID,
 		       int targetStart,
 		       int targetEnd,
@@ -384,7 +385,7 @@ class GridSearch
 	       int queryStart,
 	       int querytEnd);
 
-  int CollectTargets(svec<GridTarget> & targets, int n, int nSeeds = 0);
+  int CollectTargets(svec<GridTarget> & targets, int n);
 
   void CollectSeeds(svec<GridTarget> & targets, int n);
 
