@@ -226,6 +226,16 @@ int main( int argc, char** argv )
 
 
   cout << "SATSUMA: Welcome to SatsumaSynteny! Current date and time: " << GetTimeStatic() << endl;
+
+  string satsuma2_path(std::getenv("SATSUMA2_PATH"));
+  string current_path(std::getenv("PWD"));
+  if (satsuma2_path==""){
+    cout << "ERROR: SATSUMA2_PATH variable not set, please set it to the binary path." <<endl;
+    return -1;
+  }
+  cout<< "Path for Satsuma2: '"<<satsuma2_path<<"'"<<endl;
+  //TODO: test for the binaries to be there!
+
   //ALG: create output dir
   string probe = output + "/satsuma.log";
   FILE * pProbe = fopen(probe.c_str(), "r");
@@ -263,15 +273,6 @@ int main( int argc, char** argv )
     return -1;
   }
 
-
-  char exec_dir[8192];
-  strcpy(exec_dir, pExec);
-  for (i = strlen(exec_dir)-1; i>=0; i--) {
-    if (exec_dir[i] == '/') {
-      exec_dir[i+1] = 0;
-      break;
-    }
-  }
 
   //==================================================================
 
@@ -315,13 +316,10 @@ int main( int argc, char** argv )
   //==================================================================
   //ALG: create filtered seeds
   if (!bFilter && seedFile == "") {
-    cout<< "Path for Satsuma2: '"<<std::getenv("SATSUMA2_PATH")<<"'"<<endl;
-    string s2p(std::getenv("SATSUMA2_PATH"));
-    string current_path(std::getenv("PWD"));
     for (long long i=11; i<32; i+=2){
       seedFile = output + "/kmatch_results.k"+ to_string(i);
       string cmd;
-      cmd = "echo \"cd " + current_path + ";"+ s2p + "/KMatch " + sQuery + " " + sTarget;
+      cmd = "echo \"cd " + current_path + ";"+ satsuma2_path + "/KMatch " + sQuery + " " + sTarget;
       cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1);
       cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
       cout << "Running seed pre-filter " << cmd << endl;
@@ -348,13 +346,6 @@ int main( int argc, char** argv )
     cout << "Seed pre-filters finished" << endl;
   }
   
-
-  //ALG: spawn slaves
-
-
-  
-
-
   //ALG: processing the seeds.
   
   wq.collect_new_matches(matches); //matches.Read(seedFile);
@@ -558,7 +549,7 @@ int main( int argc, char** argv )
 
 
   //ALG: run ChainMatches
-  string mergeCmd = exec_dir;
+  string mergeCmd = satsuma2_path;
 
   mergeCmd += "/ChainMatches -i " + output + "/xcorr_aligns.almost.out";
   mergeCmd += " -o " + output + "/xcorr_aligns.final.out";
@@ -568,7 +559,7 @@ int main( int argc, char** argv )
 
 
   //ALG: run /MergeXCorrMatches
-  mergeCmd = exec_dir;
+  mergeCmd = satsuma2_path;
 
   mergeCmd += "/MergeXCorrMatches -i " + output + "/xcorr_aligns.final.out";
   mergeCmd += " -q " + sQuery + " -t " + sTarget;
@@ -581,7 +572,7 @@ int main( int argc, char** argv )
   //ALG: if bNoRef, refine matches
   if (bNoRef) {
     cout << "Running refined matches (fill in the blanks)." << endl;
-    string refCmd = exec_dir;
+    string refCmd = satsuma2_path;
     refCmd += "/HomologyByXCorr -cutoff 1.2  -q " + sQuery;
     refCmd += " -t " + sTarget;
     refCmd += " -o " + output + "/xcorr_aligns.refined.out";
@@ -592,7 +583,7 @@ int main( int argc, char** argv )
     system(refCmd.c_str());
 
 
-    refCmd = exec_dir;
+    refCmd = satsuma2_path;
 
     refCmd += "/MergeXCorrMatches -i " + output + "/xcorr_aligns.refined.out";
     refCmd += " -q " + sQuery + " -t " + sTarget;
