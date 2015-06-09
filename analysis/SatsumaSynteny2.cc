@@ -357,7 +357,6 @@ int main( int argc, char** argv )
   
   //MultiMatches workMatches;
   cout << "SATSUMA: Entering main search loop, date and time: " << GetTimeStatic() << endl;
-  int matches_count = 0;
   int exitCounter = 0;
   int superExitCounter = 0;
   int superExitCounterThresh = 20;
@@ -368,15 +367,11 @@ int main( int argc, char** argv )
   while (true) {
     //TODO: ALG: collect matches (get count of tasks and results)
     main_iteration++;
-    cout<<"MAIN: starting iteration "<<main_iteration;
-    cout<<"MAIN: Collecting matches"<<endl;
-
-    uint64_t finished_pairs_count=wq.collect_new_matches(matches);
-    uint64_t new_matches_count=matches.GetMatchCount()-matches_count;
-    matches_count=matches.GetMatchCount();
-    cout<<"MAIN: "<<new_matches_count<<" new matches collected"<<endl;
+    cout<<"MAIN: starting iteration "<<main_iteration<<endl;
+    t_collect_status collect_status=wq.collect_new_matches(matches);
+    cout<<"MAIN: "<<collect_status.matches<<" new matches collected"<<endl;
     //ALG: if new matches
-    if (new_matches_count > 0) {
+    if (collect_status.matches > 0) {
       //ALG: chain matches
       cout << "MAIN: Running the chaining step..." << endl;
       MultiMatches chained;
@@ -395,6 +390,11 @@ int main( int argc, char** argv )
     }
     //TODO: ALG: collect targets to fill in the queue
     int targets_to_collect=targets_queue_size - wq.pending_pair_count();
+    if (!collect_status.matches && !targets_to_collect) {
+      cout<< "MAIN: nothing changed, skipping cycle and waiting 3 seconds"<<endl;
+      sleep(3);
+      continue;
+    }
     cout << "MAIN: Collecting " << targets_to_collect << " new targets from the grid " << endl;
     svec<GridTarget> newTargets;
     int realTargets = grid.CollectTargets(newTargets, targets_to_collect);
@@ -408,13 +408,13 @@ int main( int argc, char** argv )
     }
 
     //TODO: ALG: check CONVERGENCE condition
-    cout<< "MAIN: STATUS: pairs_processed, new_matches, pair_to_match_relation, targets_needed, targets_collected"<<endl;
-    cout<< "MAIN: STATUS: "<< finished_pairs_count << ", " \
-                           << new_matches_count << ", " \
-                           << ((double) new_matches_count)/finished_pairs_count << ", " \
+    cout<< "MAIN: STATUS: slaves_processed, new_matches, slave_to_match_relation, targets_needed, targets_collected"<<endl;
+    cout<< "MAIN: STATUS: "<< collect_status.slaves << ", " \
+                           << collect_status.matches << ", " \
+                           << (collect_status.slaves ? ((double) collect_status.matches)/collect_status.slaves : 0 ) << ", " \
                            << targets_to_collect << ", " \
-                           << realTargets << endl;
-    if (!realTargets){//XXX: extreme convergence, only useful to test functions
+                           << newTargets.isize() << endl;
+    if (newTargets.isize()+wq.pending_pair_count()==0){//XXX: extreme convergence, only useful to test functions
       break;
     }
 

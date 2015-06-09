@@ -299,13 +299,14 @@ void WorkQueue::setup_queue(){
   //spawns each slave with its slave_id
   start_listener();  
   stringstream cmd;
+  unsigned int cpus_per_qsub=2;
   cmd << "echo cd $PWD ';";
   for (int i=0;i<slave_count;i++){
     cmd  << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
     cmd << " -q " << query_filename << " -t " << target_filename;
     cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << " &";
-    if (i%8==7 || i==slave_count-1){
-      cmd << " wait '|qsub -l ncpus=" << 8 << " -N SL" << i+1;
+    if (i%cpus_per_qsub==cpus_per_qsub-1 || i==slave_count-1){
+      cmd << " wait '|qsub -l ncpus=" << cpus_per_qsub << " -N SL" << i+1;
       cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
       system(cmd.str().c_str());
       cmd.str("");
@@ -315,11 +316,11 @@ void WorkQueue::setup_queue(){
 }
 
 
-unsigned int WorkQueue::collect_new_matches(MultiMatches &matches){
+t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
   //processes new matches and returns hom many there where
   //ALG: mutex start
   unsigned long int i;
-  unsigned long int sf=1;
+  t_collect_status status;
   pthread_mutex_lock(&results_mutex);
   //ALG: update the MultiMatch
   for (i=0;i<resultsv.size();i++){
@@ -345,8 +346,10 @@ unsigned int WorkQueue::collect_new_matches(MultiMatches &matches){
   }
   //ALG: mutex end
   resultsv.clear();
-  if (slaves_finished_count) sf=slaves_finished_count;
+  status.slaves=slaves_finished_count;
+  status.matches=i;
+  if (status.matches>0 and status.slaves==0) status.slaves=1; //XXX: wrong way to resolve race!!!
   slaves_finished_count=0;
   pthread_mutex_unlock(&results_mutex);
-  return sf;
+  return status;
 }

@@ -17,6 +17,11 @@ typedef struct {
     double prob;
     double ident;
 } t_result;
+typedef struct {
+  uint64_t slaves;
+  uint64_t matches;
+} t_collect_status;
+
 //XXX: this belongs in a lib
 #define MYPORT 3491
 #define STATUS_OK 100
@@ -38,7 +43,7 @@ class WorkQueue {
     void setup_queue();
     void add_pair(int targetFrom, int targetTo, int queryFrom, int queryTo, bool fast);
     unsigned int pending_pair_count();
-    unsigned int collect_new_matches(MultiMatches &matches); //updates the multimatches and returns number of new matches
+    t_collect_status collect_new_matches(MultiMatches &matches); //updates the multimatches and returns number of new matches
     void close_queue();
     void serve();//spawns a new thread and serves the Queue
 
