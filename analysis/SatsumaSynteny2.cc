@@ -169,9 +169,8 @@ int main( int argc, char** argv )
   commandArg<int> qChunkCmmd("-q_chunk","query chunk size", 4096);
   commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
-  commandArg<int> blockCmmd("-n","number of processes", 1);
   commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
-  commandArg<int> perCmmd("-m","number of jobs per block", 32);
+  commandArg<int> perCmmd("-m","number of jobs per block", 4);
   commandArg<bool> refineNotCmmd("-do_refine","refinment steps", false);
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.99999);
   commandArg<double> cutoffCmmd("-cutoff","signal cutoff", 1.8);
@@ -189,7 +188,6 @@ int main( int argc, char** argv )
   P.registerArg(lIntCmmd);
   P.registerArg(tChunkCmmd);
   P.registerArg(qChunkCmmd);
-  P.registerArg(blockCmmd);
   P.registerArg(lsfCmmd);
   P.registerArg(refineNotCmmd);
   P.registerArg(probCmmd);
@@ -210,7 +208,6 @@ int main( int argc, char** argv )
   int minLen = P.GetIntValueFor(lIntCmmd);
   int targetChunk = P.GetIntValueFor(tChunkCmmd);
   int queryChunk = P.GetIntValueFor(qChunkCmmd);
-  int nBlocks = P.GetIntValueFor(blockCmmd);
   int perBlock = P.GetIntValueFor(perCmmd);
   int slave_count = P.GetIntValueFor(slavesCmmd);
   bool bLSF = P.GetBoolValueFor(lsfCmmd);
@@ -360,109 +357,73 @@ int main( int argc, char** argv )
   
   //MultiMatches workMatches;
   cout << "SATSUMA: Entering main search loop, date and time: " << GetTimeStatic() << endl;
-  int last = 0;
+  int matches_count = 0;
   int exitCounter = 0;
   int superExitCounter = 0;
   int superExitCounterThresh = 20;
   int superExitCounterNot = 0;
-  int targets_queue_size=nBlocks*slave_count*3;
+  int targets_queue_size=slave_count*perBlock*3;
+  int main_iteration=0;
   //ALG: main loop
   while (true) {
     //TODO: ALG: collect matches (get count of tasks and results)
-    uint64_t pending_matches=wq.collect_new_matches(matches);
-    cout<<"Main loop waiting (pending_matches="<<pending_matches<<" pending_pairs="<<wq.pending_pair_count()<<") ..."<<endl;
+    main_iteration++;
+    cout<<"MAIN: starting iteration "<<main_iteration;
+    cout<<"MAIN: Collecting matches"<<endl;
 
+    uint64_t finished_pairs_count=wq.collect_new_matches(matches);
+    uint64_t new_matches_count=matches.GetMatchCount()-matches_count;
+    matches_count=matches.GetMatchCount();
+    cout<<"MAIN: "<<new_matches_count<<" new matches collected"<<endl;
     //ALG: if new matches
-    if (matches.GetMatchCount() - last > 0) {
+    if (new_matches_count > 0) {
       //ALG: chain matches
-      cout << "Running the chaining step..." << endl;
+      cout << "MAIN: Running the chaining step..." << endl;
       MultiMatches chained;
       matches.Sort();
       if (bDup)
         RunMatchDynProgMult(chained, matches);
       else
         RunMatchDynProg(chained, matches);
-      cout << "Total matches: " << chained.GetMatchCount() << endl;
+      cout << "MAIN: Total matches: " << chained.GetMatchCount() << endl;
       matches = chained;
       SyntenyInterpolator inter;
       inter.Interpolate(chained); 
-      cout << "Total matches (interpolated): " << chained.GetMatchCount() << endl;
-      cout << "Updating grid's Target Weights" << endl;
-      
+      cout << "MAIN: Total matches (interpolated): " << chained.GetMatchCount() << endl;
+      cout << "MAIN: Updating grid's Target Weights" << endl;
       grid.UpdateTargetWeights(chained);
-
     }
     //TODO: ALG: collect targets to fill in the queue
-    cout << "Collecting." << endl;
+    int targets_to_collect=targets_queue_size - wq.pending_pair_count();
+    cout << "MAIN: Collecting " << targets_to_collect << " new targets from the grid " << endl;
     svec<GridTarget> newTargets;
-    //TODO: check the size of the queue here, implement the proposed changes
-    int realTargets = grid.CollectTargets(newTargets, 4*slave_count);
-    cout << "Targets retrieved: " << newTargets.isize() << endl;
-    cout << "Ready to re-feed." << endl;
-
-
-
-    int giveUpThresh = (nBlocks * perBlock)/4+1;
-
-    //TODO: ALG: check end condition
-    if (newTargets.isize() >= nBlocks * perBlock)
-      superExitCounterNot++;
-
-    if (newTargets.isize() < nBlocks * perBlock) {
-      if (superExitCounterNot > 4 * superExitCounterThresh)
-        superExitCounter++;
-    }
-
-
-    if (realTargets < giveUpThresh 
-        || superExitCounter >= superExitCounterThresh
-        || newTargets.isize() == 0) {
-      cout << "Counting down: " << exitCounter << endl;
-      exitCounter++;
-
-      if (exitCounter > 10 || newTargets.isize() == 0) {
-        //ALG: final collect
-        cout << "Final collect!" << endl;
-        string die = output + "/slaves.directive";
-        FILE * pDie = fopen(die.c_str(), "w");
-        fprintf(pDie, "exit\n");
-        fclose(pDie);
-
-        //ALG: wait for slaves to die
-        //wq.close_queue();
-        cout << "All done, exiting!!" << endl;
-        //ALG: exit main loop
-        break;
-      }
-    } else {
-
-      cout << "Resetting exit counter." << endl;
-      exitCounter = 0;
-    }
-
-
-    //TODO: ALG: distribute the work in blocks 
-
+    int realTargets = grid.CollectTargets(newTargets, targets_to_collect);
+    cout << "MAIN: Targets retrieved: " << newTargets.isize() << endl;
     for (i=0; i<newTargets.isize(); i++) {
-      int to = i + perBlock;
-      if (to >= newTargets.isize())
-        to = newTargets.isize();
-      for (j=i; j<to; j++) {
-        wq.add_pair(newTargets[j].TargetFirst(),
-            newTargets[j].TargetLast(),
-            newTargets[j].QueryFirst(),
-            newTargets[j].QueryLast(),
-            newTargets[j].IsFast());
-
-      }
-      i = j-1;
-
+        wq.add_pair(newTargets[i].TargetFirst(),
+            newTargets[i].TargetLast(),
+            newTargets[i].QueryFirst(),
+            newTargets[i].QueryLast(),
+            newTargets[i].IsFast());
     }
+
+    //TODO: ALG: check CONVERGENCE condition
+    cout<< "MAIN: STATUS: pairs_processed, new_matches, pair_to_match_relation, targets_needed, targets_collected"<<endl;
+    cout<< "MAIN: STATUS: "<< finished_pairs_count << ", " \
+                           << new_matches_count << ", " \
+                           << ((double) new_matches_count)/finished_pairs_count << ", " \
+                           << targets_to_collect << ", " \
+                           << realTargets << endl;
+    if (!realTargets){//XXX: extreme convergence, only useful to test functions
+      break;
+    }
+
+
+
   }
 
+  wq.close_queue(); //XXX: TODO: wait till all targets have been processed!
 
-
-  wq.close_queue();
   //ALG: write final output
   cout << "Writing final output!" << endl;
   string finalOut = output + "/xcorr_aligns.almost.out"; 

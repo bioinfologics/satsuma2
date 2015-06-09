@@ -59,6 +59,7 @@ class WorkQueue {
     double minProb, sigCutoff;
     char master_hostname[1024];//XXX: hardcoded!!!
     int port;
+    unsigned long int slaves_finished_count;
 
     pthread_mutex_t pairs_mutex;
     std::vector<t_pair> pairs; //XXX: beware, all access to this should be mutexed!!!

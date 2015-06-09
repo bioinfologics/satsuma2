@@ -35,6 +35,7 @@ WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarg
   port=MYPORT;
   pthread_mutex_init(&pairs_mutex,NULL);
   last_connections.resize(_slave_count);
+  slaves_finished_count=0;
 }
 
 void WorkQueue::add_pair(int _targetFrom, int _targetTo, int _queryFrom, int _queryTo, bool _fast){
@@ -158,6 +159,9 @@ void WorkQueue::receive_solutions() {
   //ALG: reads ammount of results
   //TODO:should check for ammounts of bytes readed here too!!!
   //cout<<"Slave is sending solutions..."<<endl;
+  pthread_mutex_lock(&results_mutex);
+  slaves_finished_count++;
+  pthread_mutex_unlock(&results_mutex);
   unsigned int solcount;
   read(conn_sockfd,&solcount,sizeof(solcount));
   //ALG: reads results into temp variable TODO: validation!!!
@@ -315,6 +319,7 @@ unsigned int WorkQueue::collect_new_matches(MultiMatches &matches){
   //processes new matches and returns hom many there where
   //ALG: mutex start
   unsigned long int i;
+  unsigned long int sf=1;
   pthread_mutex_lock(&results_mutex);
   //ALG: update the MultiMatch
   for (i=0;i<resultsv.size();i++){
@@ -340,6 +345,8 @@ unsigned int WorkQueue::collect_new_matches(MultiMatches &matches){
   }
   //ALG: mutex end
   resultsv.clear();
+  if (slaves_finished_count) sf=slaves_finished_count;
+  slaves_finished_count=0;
   pthread_mutex_unlock(&results_mutex);
-  return i;
+  return sf;
 }
