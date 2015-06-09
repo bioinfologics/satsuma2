@@ -299,7 +299,7 @@ void WorkQueue::setup_queue(){
   //spawns each slave with its slave_id
   start_listener();  
   stringstream cmd;
-  unsigned int cpus_per_qsub=2;
+  unsigned int cpus_per_qsub=8;
   cmd << "echo cd $PWD ';";
   for (int i=0;i<slave_count;i++){
     cmd  << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1;

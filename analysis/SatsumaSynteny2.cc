@@ -357,12 +357,12 @@ int main( int argc, char** argv )
   
   //MultiMatches workMatches;
   cout << "SATSUMA: Entering main search loop, date and time: " << GetTimeStatic() << endl;
-  int exitCounter = 0;
-  int superExitCounter = 0;
-  int superExitCounterThresh = 20;
-  int superExitCounterNot = 0;
   int targets_queue_size=slave_count*perBlock*3;
   int main_iteration=0;
+  bool first_pass=true;
+  int extra_iterations=10;
+  int exit_counter=extra_iterations;
+  int min_slave_matches=perBlock*20;//XXX: make this a parameter
   //ALG: main loop
   while (true) {
     //TODO: ALG: collect matches (get count of tasks and results)
@@ -371,7 +371,8 @@ int main( int argc, char** argv )
     t_collect_status collect_status=wq.collect_new_matches(matches);
     cout<<"MAIN: "<<collect_status.matches<<" new matches collected"<<endl;
     //ALG: if new matches
-    if (collect_status.matches > 0) {
+    if (first_pass || collect_status.matches > 0) {
+      first_pass=false;
       //ALG: chain matches
       cout << "MAIN: Running the chaining step..." << endl;
       MultiMatches chained;
@@ -389,10 +390,11 @@ int main( int argc, char** argv )
       grid.UpdateTargetWeights(chained);
     }
     //TODO: ALG: collect targets to fill in the queue
-    int targets_to_collect=targets_queue_size - wq.pending_pair_count();
+    int targets_to_collect=(wq.pending_pair_count()<targets_queue_size ? targets_queue_size - wq.pending_pair_count() : 0 );
     if (!collect_status.matches && !targets_to_collect) {
       cout<< "MAIN: nothing changed, skipping cycle and waiting 3 seconds"<<endl;
       sleep(3);
+      main_iteration--;
       continue;
     }
     cout << "MAIN: Collecting " << targets_to_collect << " new targets from the grid " << endl;
@@ -414,8 +416,17 @@ int main( int argc, char** argv )
                            << (collect_status.slaves ? ((double) collect_status.matches)/collect_status.slaves : 0 ) << ", " \
                            << targets_to_collect << ", " \
                            << newTargets.isize() << endl;
-    if (newTargets.isize()+wq.pending_pair_count()==0){//XXX: extreme convergence, only useful to test functions
-      break;
+    if (collect_status.slaves){//XXX: extreme convergence, only useful to test functions
+      if (collect_status.matches/collect_status.slaves<min_slave_matches) {
+        exit_counter--;
+        cout <<"MAIN: exit_counter="<<exit_counter<<endl;
+        if (!exit_counter){
+          break;
+        }
+      } else if (exit_counter!=extra_iterations){
+        exit_counter=extra_iterations;
+        cout <<"MAIN: exit_counter="<<exit_counter<<endl;
+      }
     }
 
 
