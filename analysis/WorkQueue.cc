@@ -83,12 +83,13 @@ static void * thread_serve(void * args){
   //ALG: ---Listen Function Starts
   WorkQueue * wq= (WorkQueue *)args;
   wq->serve();
+  return NULL;
 }
 
 //Accepts connection then returns new socket
 //reads client id and command
 //TODO: update client_id_last_connection
-int WorkQueue::accept_client_command() {
+int WorkQueue::accept_client() {
   //cout<<"***Incoming connection!!!****"<<endl;
   conn_sockfd = accept(sockfd, NULL, NULL); //just discard the client info!
   if (conn_sockfd < 0) {
@@ -99,23 +100,14 @@ int WorkQueue::accept_client_command() {
     if (n!=sizeof(conn_clientID) || conn_clientID > slave_count){
       cout<<"ERROR No valid slave ID received.";
     } else {
-      int reply_ok=STATUS_OK;
-      write(conn_sockfd,&reply_ok,sizeof(reply_ok));
-
-      n = read(conn_sockfd,&conn_command,sizeof(conn_command));
-      if (n!=sizeof(conn_command) || (conn_command!=TCP_COMMAND_REQUEST_PAIRS && conn_command!=TCP_COMMAND_SEND_SOLUTIONS)){
-        cout<<"ERROR: no valid command received from slave "<<conn_clientID<<endl;
-      } else {
-        //touch the slave last connection
-        last_connections[conn_clientID-1]==time(NULL);
-        return 0;
-      }
+      //touch the slave last connection
+      last_connections[conn_clientID-1]==time(NULL);
+      return 0;
     }
   }
   close(conn_sockfd);
   conn_sockfd=0;
   conn_clientID=-1;
-  conn_command=0;
   return -1;
 }
 
@@ -149,7 +141,6 @@ void WorkQueue::submit_tasks() {
     }
   }
   free(p);
-  close(conn_sockfd);
 }
 
 //TODO: implement some kind of check on the reeived data
@@ -171,9 +162,9 @@ void WorkQueue::receive_solutions() {
   for (unsigned int i=0;i<solcount;i++) {
     int availb;
     ioctl(conn_sockfd, FIONREAD, &availb);
-    for(int tries=0;tries<50 && availb<sizeof(t_result);tries++){
-      //cout<<"Waiting for the slow slave to send the results..."<<endl;
-      usleep(100000);
+    for(int tries=0;tries<500 && availb<sizeof(t_result);tries++){
+      cout<<"Waiting for the slow slave "<< conn_clientID <<"to send the results..."<<endl;
+      usleep(10000);
       ioctl(conn_sockfd, FIONREAD, &availb);
     }
     int n=read(conn_sockfd,&r,sizeof(t_result));
@@ -193,9 +184,9 @@ void WorkQueue::receive_solutions() {
     }
     pthread_mutex_unlock(&results_mutex);
   }
-  int reply_ok=STATUS_OK;
+  /*int reply_ok=STATUS_OK;
   write(conn_sockfd,&reply_ok,sizeof(reply_ok));
-  close(conn_sockfd);
+  close(conn_sockfd);*/
 
 }
 
@@ -216,13 +207,18 @@ void WorkQueue::serve(){
     FD_ZERO(&rfds);
     FD_SET(sockfd, &rfds);
     if (select(sockfd+1, &rfds, (fd_set *) 0, (fd_set *) 0, &tv)>0){
-      accept_client_command(); //If connection is closed, the command will be 0, so nothing more happens
-      if (conn_command==TCP_COMMAND_REQUEST_PAIRS){
+      accept_client(); 
+      if (conn_sockfd>0){
+        receive_solutions();
+        submit_tasks();
+      }
+      close(conn_sockfd);
+      /*if (conn_command==TCP_COMMAND_REQUEST_PAIRS){
         submit_tasks();
       }
       else if (conn_command==TCP_COMMAND_SEND_SOLUTIONS){
         receive_solutions();
-      }
+      }*/
     }
     //TODO: housekeeping
     //check for stalled slaves and reassign their work.
@@ -256,8 +252,8 @@ void WorkQueue::start_listener(){
     exit(1);
   }
   //SET TO BLOCKING!!!!!
-  int flags = fcntl(sockfd, F_GETFL);
-  int result = fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK);
+  //int flags = fcntl(sockfd, F_GETFL);
+  //int result = fcntl(sockfd, F_SETFL, flags & ~O_NONBLOCK);
   memset((char *) &serv_addr, '\0', sizeof(serv_addr));
   portno = port;
   serv_addr.sin_family = AF_INET;

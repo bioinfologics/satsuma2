@@ -174,6 +174,7 @@ int main( int argc, char** argv )
   commandArg<bool> refineNotCmmd("-do_refine","refinment steps", false);
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.99999);
   commandArg<double> cutoffCmmd("-cutoff","signal cutoff", 1.8);
+  commandArg<int> minmatchesCmmd("-min_matches","minimum matches per target to keep iterating", 20);
   commandArg<string> seedCmmd("-seed","loads seeds and runs from there (xcorr*data)", "");
   commandArg<int> blockPixelCmmd("-pixel","number of blocks per pixel", 24);
   commandArg<bool> filterCmmd("-nofilter","do not pre-filter seeds (slower runtime)", false);
@@ -192,6 +193,7 @@ int main( int argc, char** argv )
   P.registerArg(refineNotCmmd);
   P.registerArg(probCmmd);
   P.registerArg(cutoffCmmd);
+  P.registerArg(minmatchesCmmd);
   P.registerArg(perCmmd);
   P.registerArg(slavesCmmd);
   P.registerArg(seedCmmd);
@@ -214,6 +216,7 @@ int main( int argc, char** argv )
   double minProb = P.GetDoubleValueFor(probCmmd);
   bool bNoRef = P.GetBoolValueFor(refineNotCmmd);
   double sigCutoff = P.GetDoubleValueFor(cutoffCmmd);
+  int min_matches_per_target=P.GetIntValueFor(minmatchesCmmd);
   int blocksPerPixel = P.GetIntValueFor(blockPixelCmmd);
   bool bFilter = P.GetBoolValueFor(filterCmmd);
   bool bDup = P.GetBoolValueFor(dupCmmd);
@@ -362,7 +365,7 @@ int main( int argc, char** argv )
   bool first_pass=true;
   int extra_iterations=10;
   int exit_counter=extra_iterations;
-  int min_slave_matches=perBlock*20;//XXX: make this a parameter
+  int min_slave_matches=perBlock*min_matches_per_target;//XXX: make this a parameter
   //ALG: main loop
   while (true) {
     //TODO: ALG: collect matches (get count of tasks and results)

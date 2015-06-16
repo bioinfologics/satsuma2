@@ -52,7 +52,7 @@ class WorkQueue {
     int next_pair_to_process(unsigned int slave_id);//gets a pair to process, and marks it
     void get_pair(t_pair * p, unsigned int pair_id);
 
-    int accept_client_command();
+    int accept_client();
     void submit_tasks();
     void receive_solutions();
 

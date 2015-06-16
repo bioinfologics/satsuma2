@@ -13,8 +13,9 @@
 #include "analysis/MatchDynProg.h"
 #include "analysis/WorkQueue.h"
 #include "util/mutil.h"
-//#include "base/FileParser.h"
-#include <pthread.h>
+#include <queue>
+#include <thread>
+#include <mutex>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -38,7 +39,7 @@ int RCQuery(int offset, int start, int len, int chunkSize, int qLen)
 class HomologyByXCorr
 {
 public:
-  HomologyByXCorr(string mHostname, int port, int _sid, string qFilename, int qChunk, string tFilename, int tChunk, double _topCutoff, double _topCutoffFast) {
+  HomologyByXCorr(string mHostname, int port, int _sid, int _threads, string qFilename, int qChunk, string tFilename, int tChunk, double _topCutoff, double _topCutoffFast) {
     m_minLen = 0;
     m_pMulti = NULL;
     m_offset = 0;
@@ -47,7 +48,9 @@ public:
     m_tOffset = 0;
     m_qID = -1;
     m_tID = -1;
+    threads=_threads;
 
+    processing_finished=false;
     m_targetSize = 0;
     m_minProb = 0.99;
     queryChunk=qChunk;
@@ -57,7 +60,6 @@ public:
     master_hostname=mHostname;
     portno=port;
     slave_id=_sid;
-    pairs=NULL;
     topCutoff=_topCutoff;
     topCutoffFast=_topCutoffFast;
   }
@@ -82,20 +84,25 @@ public:
   int get_targets_from_master();
   void send_solutions_to_master();
   std::vector<CCSignal> create_signals(vecDNAVector _sequences, unsigned long int _from, unsigned long int _count, bool reverse);
-  void align_block(unsigned long int pair_id);
+  void align(t_pair p);
   void FilterMatches(int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse);
   void work();
+  int comm_loop();
 
 
 private:
   int sid;
-  t_pair * pairs;
+  int threads;
   int m_minLen;
   double topCutoff, topCutoffFast;
   double targetTotal;
   svec<int> m_bestID;
   svec<double> m_ident;
   MultiMatches * m_pMulti;
+  std::queue<t_pair> targets;
+  std::mutex targets_mutex;
+  std::vector<t_result> results;
+  std::mutex results_mutex;
 
   int m_tID;
   int m_qID;
@@ -106,6 +113,7 @@ private:
   double m_targetSize;
   double m_minProb;
 
+  bool processing_finished;
   int sockfd;
   string master_hostname;
   int portno;
@@ -118,7 +126,6 @@ private:
   ChunkManager * cmQuery; //XXX: forced to use this as no default init
   ChunkManager * cmTarget; //XXX: forced to use this as no default init
   svec<SeqChunk> targetInfo, queryInfo;
-  std::vector<t_result> resultsv;
  
 
 
@@ -207,89 +214,6 @@ int HomologyByXCorr::connect_to_master(){
   return sockfd;
     
 }
-
-int HomologyByXCorr::get_targets_from_master(){
-	//connects to master, gets targets, if master says no targets, wait TIMEOUT_SEC seconds and try again
-	//Sets the targets array, and the num_targets counter
-  //If master say DIE: num_targets=0
-  // Create socket, if can't connect
-  int pair_count;
-  while(1){
-    sockfd=connect_to_master();
-    if (sockfd<=0) {
-      cout<<"ERROR: can't connect to master! will retry later..."<<endl;
-      //return -1;
-      sleep(5);
-      continue;
-    }
-    //Send request for new PAIRS
-    //TODO:write(TCP_COMMAND_REQUEST_PAIRS);
-    //TODO: read pair count
-    unsigned int command;
-    command=TCP_COMMAND_REQUEST_PAIRS;
-    write(sockfd,&command,sizeof(command));
-    if (read(sockfd,&pair_count,sizeof(pair_count)) < sizeof(pair_count)){
-      cout<<"ERROR: failure on reading socket"<<endl;
-      return -1;
-    }
-
-    if (pair_count>0){//Master has work for us, let's read it
-      cout<<"Receiving "<<pair_count<<" pairs from master"<<endl;
-      //TODO: malloc the pairs array
-      if (pairs!=NULL) free(pairs);
-      pairs=(t_pair *)malloc(pair_count*sizeof(t_pair));
-      //TODO: read pairs
-      read(sockfd,pairs,pair_count*sizeof(t_pair));
-    }
-    disconnect_from_master();
-    if (pair_count==-1){
-      return -1; //master said DIE
-    }
-    if (pair_count==0){//Master has not any work, disconnect and wait
-      //TODO: wait
-      sleep(TIMEOUT_SEC);
-    }
-    if (pair_count>0) return pair_count;
-  }
-}
-
-void HomologyByXCorr::send_solutions_to_master(){
-    //connects to master, sends solutions and clears them
-    int sockfd;
-    int pair_count;
-    unsigned int command;
-    while(1){
-        sockfd=connect_to_master();
-        if (sockfd<=0) {
-            cout<<"ERROR: can't connect to master! (Retrying in 1 second)"<<endl;
-            sleep(1);
-        }
-        else break;
-    }
-    cout<<" Sending "<<resultsv.size()<<" solutions"<<endl;
-    //Send request to upload solutions
-    command=TCP_COMMAND_SEND_SOLUTIONS;
-    write(sockfd,&command,sizeof(command));
-    //write solution count
-    unsigned int solcount=resultsv.size();
-    write(sockfd,&solcount,sizeof(solcount));
-    //write solutions
-    for (unsigned int i=0;i<solcount;i++) write(sockfd,&resultsv[i],sizeof(t_result));
-    int reply_ok=0;
-    read(sockfd,&reply_ok,sizeof(reply_ok));
-    if (reply_ok==STATUS_OK){
-        cout<<" Server finished reading OK."<<endl;
-    }
-    disconnect_from_master();
-    //TODO: free(pairs);
-    free(pairs);
-    resultsv.resize(0);
-    pairs=NULL;
-
-    pair_count=0;
-    cout<<" SENT"<<endl;
-}
-
 void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse){
     int len, tStart, qStart;
     for (int j=0; j<_matches.isize(); j++) {
@@ -327,7 +251,9 @@ void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, vecSeqMatch _
         r.reverse=_reverse;
         r.prob=prob;
         r.ident=ident;
-        resultsv.push_back(r);
+        results_mutex.lock();
+        results.push_back(r);
+        results_mutex.unlock();
     }
 
 }
@@ -376,9 +302,9 @@ std::vector<CCSignal> HomologyByXCorr::create_signals( vecDNAVector _sequences, 
 
 }
 
-void HomologyByXCorr::align_block(unsigned long int pair_id){
+void HomologyByXCorr::align(t_pair p){
 
-    cout<<"Align block running (block: "<<pair_id<<" - t:"<<pairs[pair_id].targetFrom<<"-"<<pairs[pair_id].targetTo<<" q:"<<pairs[pair_id].queryFrom<<"-"<<pairs[pair_id].queryTo<<")"<<endl;
+    cout<<"Align block running (block: - t:"<<p.targetFrom<<"-"<<p.targetTo<<" q:"<<p.queryFrom<<"-"<<p.queryTo<<")"<<endl;
     //XXX: is this storage correct? create all signals for the target and query spaces
     std::vector<CCSignal> targetSignals;
     std::vector<CCSignal> querySignals;
@@ -387,42 +313,131 @@ void HomologyByXCorr::align_block(unsigned long int pair_id){
 
     //Create all signals
     //XXX: is To included or not?
-    target_count=pairs[pair_id].targetTo+1-pairs[pair_id].targetFrom;
-    query_count=pairs[pair_id].queryTo+1-pairs[pair_id].queryFrom;
+    target_count=p.targetTo+1-p.targetFrom;
+    query_count=p.queryTo+1-p.queryFrom;
     //XXX what is the coordinates, how are them set?
-    targetSignals = create_signals(target, pairs[pair_id].targetFrom, target_count, false);
-    querySignals = create_signals(query, pairs[pair_id].queryFrom, query_count, false);
-    querySignalsReverse = create_signals(query, pairs[pair_id].queryFrom, query_count, true);
+    targetSignals = create_signals(target, p.targetFrom, target_count, false);
+    querySignals = create_signals(query, p.queryFrom, query_count, false);
+    querySignalsReverse = create_signals(query, p.queryFrom, query_count, true);
 
-    cout<<"Block "<<pair_id<<" signals created..."<<endl;
+    //cout<<"Block "<<pair_id<<" signals created..."<<endl;
 
     for (unsigned long int qi=0; qi<query_count; qi++){
         //for each query
         for (unsigned long int ti=0; ti<target_count; ti++){
             //for each target
             Align(
-                    pairs[pair_id].targetFrom+ti, targetSignals[ti],
-                    pairs[pair_id].queryFrom+qi, querySignals[qi], querySignalsReverse[qi],
-                    pairs[pair_id].fast);
+                    p.targetFrom+ti, targetSignals[ti],
+                    p.queryFrom+qi, querySignals[qi], querySignalsReverse[qi],
+                    p.fast);
         }
     }
+}
+int HomologyByXCorr::comm_loop(){
+  //resolves the master address and creates the structs
+  struct hostent *server;
+  struct sockaddr_in serv_addr;
+  server = gethostbyname(master_hostname.c_str());
+  if (server == NULL) {
+    cout << "ERROR resolving master hostname" << endl;
+    return -1;
+  }
+
+  bzero((char *) &serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+  serv_addr.sin_port = htons(portno);
+
+  while(!processing_finished){
+    //acquire lock on target_blocks
+    targets_mutex.lock();
+    //check targets<threads*4?
+    if (targets.size()<4*threads){
+      targets_mutex.unlock();
+      //PHASE 1: OPEN CONNECTION
+      int sockfd;
+      while (sockfd<=0) {
+        sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd <= 0){
+          cout << "ERROR opening socket" << endl;
+          continue;
+        }
+        if (connect(sockfd,(struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+          cout << "ERROR connecting to master" << endl;
+          close(sockfd);
+          sockfd=0;
+        }
+        if (write(sockfd,&slave_id,sizeof(slave_id)) != sizeof(slave_id)) {
+          cout << "ERROR sending id to master" << endl;
+          close(sockfd);
+          return -1;
+        }
+
+      }
+      //PHASE 2: SEND RESULTS
+      //lock results
+      results_mutex.lock();
+      //create a single big-mem-structure with all the results copied into it plus their count at the begining
+      t_result * rv;
+      size_t results_count=results.size();
+      rv=(t_result *) malloc(results_count*sizeof(t_result));
+      memcpy(rv,results.data(),results_count*sizeof(t_result));
+      //clean results
+      results.clear();
+      //unlock results
+      results_mutex.unlock();
+      //write results into the socket
+      write(sockfd,rv,results_count*sizeof(t_result));
+      free(rv);
+      //PHASE 3: GET TARGETS
+
+      //read target count (if -1, set processing_finished)
+      int target_count;
+      t_pair * tv;
+      read(sockfd,&target_count,sizeof(target_count));
+      if (target_count==-1){
+        processing_finished=true;
+      }
+      //read all targets in a single structure in memory
+      if (target_count>0){
+        tv=(t_pair *)malloc(target_count*sizeof(t_pair));
+        read(sockfd,tv,target_count*sizeof(t_pair));
+      }
+      //close the socket
+      close(sockfd);
+      if (target_count>0){
+        //lock targets
+        targets_mutex.lock();
+        //insert targets
+        for(int i=0;i<target_count;i++) targets.push(tv[i]);
+        //unlock targets
+        targets_mutex.unlock();
+        free(tv);
+      }
+    }
+    else {
+      targets_mutex.unlock();
+      sleep(1);
+    }
+  }
+
 }
 
 void HomologyByXCorr::work(){
     //Work loop, gets targets from master and reports back
-    while(1){
-        //======= Connect to master, get instructions =======
-        cout<<"Getting targets from master"<<endl;
-        num_targets=get_targets_from_master();
-
-        cout<<"DONE, got "<<num_targets<<" targets"<<endl;
-        if (0>=num_targets) break; //Master said DIE!!!
-
-        cout<<"Aligning..."<<endl;
-        for (int i=0;i<num_targets;i++) align_block(i);
-        //======= send reply to master
-        cout<<"Sending solutions"<<endl;
-        send_solutions_to_master();
+    while(!processing_finished){
+        //locks targets
+        targets_mutex.lock();
+        //pops a target
+        if (!targets.empty()){
+          t_pair p=targets.front();
+          targets.pop();
+          targets_mutex.unlock();
+          align(p);
+        } else {
+          targets_mutex.unlock();
+          sleep(1);
+        }
     }
 }
 
@@ -438,6 +453,7 @@ int main( int argc, char** argv ){
     commandArg<string> mStringCmmd("-master","name of the submit host");
     commandArg<int> portIntCmmd("-port","port of the master to connect", MYPORT);
     commandArg<int> sidIntCmmd("-sid","slave_id");
+    commandArg<int> threadsIntCmmd("-p","number of working processes (threads)",1);
     commandArg<string> aStringCmmd("-q","query fasta sequence");
     commandArg<string> bStringCmmd("-t","target fasta sequence");
     commandArg<int> lIntCmmd("-l","minimum alignment length", 0);
@@ -452,6 +468,7 @@ int main( int argc, char** argv ){
     P.SetDescription("Compares two sequences via cross-correlation");
     P.registerArg(mStringCmmd);
     P.registerArg(portIntCmmd);
+    P.registerArg(threadsIntCmmd);
     P.registerArg(sidIntCmmd);
     P.registerArg(aStringCmmd);
     P.registerArg(bStringCmmd);
@@ -468,6 +485,7 @@ int main( int argc, char** argv ){
     string master = P.GetStringValueFor(mStringCmmd);
     int port = P.GetIntValueFor(portIntCmmd);
     int sid = P.GetIntValueFor(sidIntCmmd);
+    int threads = P.GetIntValueFor(threadsIntCmmd);
     string sQuery = P.GetStringValueFor(aStringCmmd);
     string sTarget = P.GetStringValueFor(bStringCmmd);
     int minLen = P.GetIntValueFor(lIntCmmd);
@@ -477,17 +495,27 @@ int main( int argc, char** argv ){
 
     double topCutoff = P.GetDoubleValueFor(cutoffCmmd);
     double topCutoffFast = P.GetDoubleValueFor(cutoffFastCmmd);
-
+    
     //======= Initialize Classes =======
     cout << "Initializing HomologyByXCorr class..."<<endl;
-    HomologyByXCorr hbxc(master,port,sid,sQuery,queryChunk,sTarget,targetChunk,topCutoff,topCutoffFast);
+    HomologyByXCorr hbxc(master,port,sid,threads,sQuery,queryChunk,sTarget,targetChunk,topCutoff,topCutoffFast);
     hbxc.SetMinimumAlignLen(minLen);
     cout<<"DONE"<<endl;
     //======= Load Genomes =======
     hbxc.create_chunks();
 
     //======= Main loop
-    cout<< "== Going to main work loop==";
-    hbxc.work();
-
+    cout<< "== launcing workers ==";
+    
+    std::thread workers[threads];
+    for (int wt=0;wt<threads;wt++) {
+      workers[wt]= std::thread(&HomologyByXCorr::work, std::ref(hbxc));
+    }
+    cout<< "== Entering communication loop ==";
+    hbxc.comm_loop();
+    cout<< "== Processing finished, waiting for the slaves to die ==";
+    for (int wt=0;wt<threads;wt++) {
+      workers[wt].join();
+    }
+    
 }

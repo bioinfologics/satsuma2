@@ -435,15 +435,15 @@ int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
     if (targets[i].IsFast())
       cout << "ERROR: Target is FAST!" << endl;
 
-    cout << "Mark used x=" << targets[i].X() << " y=" <<  targets[i].Y() << " count=" << targets[i].GetCount();
-    cout << " [" << targets[i].TargetFirst() << "-" << targets[i].TargetLast() << ",";
-    cout << targets[i].QueryFirst() << "-" << targets[i].QueryLast() << "]" << endl;
+    //cout << "Mark used x=" << targets[i].X() << " y=" <<  targets[i].Y() << " count=" << targets[i].GetCount();
+    //cout << " [" << targets[i].TargetFirst() << "-" << targets[i].TargetLast() << ",";
+    //cout << targets[i].QueryFirst() << "-" << targets[i].QueryLast() << "]" << endl;
   }
-
-  if (targets.isize() < n) {
+  //XXX: SEED targets disabled!
+  /*if (targets.isize() < n) {
     cout << "Adding in SEED targets..." << endl;
     CollectSeeds(targets, n-targets.isize());
-  }
+  }*/
 
   //for (i=0; i<targets.isize(); i++) {
   //  if (targets[i].IsFast())
