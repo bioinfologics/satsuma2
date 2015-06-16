@@ -169,6 +169,7 @@ int main( int argc, char** argv )
   commandArg<int> qChunkCmmd("-q_chunk","query chunk size", 4096);
   commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
+  commandArg<int> threadsCmmd("-threads","number of working threads per processing slave", 1);
   commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
   commandArg<int> perCmmd("-m","number of jobs per block", 4);
   commandArg<bool> refineNotCmmd("-do_refine","refinment steps", false);
@@ -196,6 +197,7 @@ int main( int argc, char** argv )
   P.registerArg(minmatchesCmmd);
   P.registerArg(perCmmd);
   P.registerArg(slavesCmmd);
+  P.registerArg(threadsCmmd);
   P.registerArg(seedCmmd);
   P.registerArg(blockPixelCmmd);
   P.registerArg(filterCmmd);
@@ -212,6 +214,7 @@ int main( int argc, char** argv )
   int queryChunk = P.GetIntValueFor(qChunkCmmd);
   int perBlock = P.GetIntValueFor(perCmmd);
   int slave_count = P.GetIntValueFor(slavesCmmd);
+  int threads_per_slave = P.GetIntValueFor(threadsCmmd);
   bool bLSF = P.GetBoolValueFor(lsfCmmd);
   double minProb = P.GetDoubleValueFor(probCmmd);
   bool bNoRef = P.GetBoolValueFor(refineNotCmmd);
@@ -311,7 +314,7 @@ int main( int argc, char** argv )
   bool bNoChain = false;
 
 
-  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_count);
+  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_count, threads_per_slave);
   //==================================================================
   //ALG: create filtered seeds
   if (!bFilter && seedFile == "") {
@@ -360,13 +363,14 @@ int main( int argc, char** argv )
   
   //MultiMatches workMatches;
   cout << "SATSUMA: Entering main search loop, date and time: " << GetTimeStatic() << endl;
-  int targets_queue_size=slave_count*perBlock*3;
+  int targets_queue_size=slave_count*threads_per_slave*8;
   int main_iteration=0;
   bool first_pass=true;
   int extra_iterations=10;
   int exit_counter=extra_iterations;
   int min_slave_matches=perBlock*min_matches_per_target;//XXX: make this a parameter
   //ALG: main loop
+  bool first_match_seen=false;
   while (true) {
     //TODO: ALG: collect matches (get count of tasks and results)
     main_iteration++;
@@ -419,7 +423,10 @@ int main( int argc, char** argv )
                            << (collect_status.slaves ? ((double) collect_status.matches)/collect_status.slaves : 0 ) << ", " \
                            << targets_to_collect << ", " \
                            << newTargets.isize() << endl;
-    if (collect_status.slaves){//XXX: extreme convergence, only useful to test functions
+    if (first_match_seen==false && collect_status.matches) {
+      first_match_seen=true;
+    }
+    if (first_match_seen && collect_status.slaves){//XXX: extreme convergence, only useful to test functions
       if (collect_status.matches/collect_status.slaves<min_slave_matches) {
         exit_counter--;
         cout <<"MAIN: exit_counter="<<exit_counter<<endl;

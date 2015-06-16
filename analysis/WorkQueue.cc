@@ -21,7 +21,7 @@
 #include "analysis/WorkQueue.h"
 
 
-WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, int _slave_count){
+WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, int _slave_count, int _threads){
   minLen=_minLen;
   queryChunk=_queryChunk;
   query_filename=_sQuery;
@@ -30,6 +30,7 @@ WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarg
   minProb=_minProb;
   sigCutoff=_sigCutoff;
   slave_count=_slave_count;
+  threads=_threads;
   gethostname(master_hostname, sizeof(master_hostname));
   shutdown_status=0;
   port=MYPORT;
@@ -118,8 +119,8 @@ void WorkQueue::submit_tasks() {
   int np=0;
   //XXX: i keep using malloc... can't help it!
   t_pair *p;
-  p=(t_pair *)malloc(4*sizeof(t_pair));
-  while (tp<4){
+  p=(t_pair *)malloc(threads*2*sizeof(t_pair));
+  while (tp<threads*2){
     np=next_pair_to_process(conn_clientID);
     //cout<<"  next pair to process is number "<<np<<endl;
     if (np==-1) break;
@@ -129,7 +130,7 @@ void WorkQueue::submit_tasks() {
   write(conn_sockfd,&tp,sizeof(tp));
   write(conn_sockfd,p,sizeof(t_pair)*tp);
   if (tp){
-    //cout<<"Slave "<<conn_clientID<<" will process "<<tp<<" pairs, I have "<<pending_pair_count()<<" pending pairs on the queue"<<endl;
+    cout<<"Slave "<<conn_clientID<<" will process "<<tp<<" pairs, I have "<<pending_pair_count()<<" pending pairs on the queue"<<endl;
     if (idle_slaves[conn_clientID]) {
       cout<<"Slave "<<conn_clientID<<" is working now."<<endl;
       idle_slaves[conn_clientID]=false;
@@ -184,10 +185,6 @@ void WorkQueue::receive_solutions() {
     }
     pthread_mutex_unlock(&results_mutex);
   }
-  /*int reply_ok=STATUS_OK;
-  write(conn_sockfd,&reply_ok,sizeof(reply_ok));
-  close(conn_sockfd);*/
-
 }
 
 void WorkQueue::serve(){
@@ -295,19 +292,14 @@ void WorkQueue::setup_queue(){
   //spawns each slave with its slave_id
   start_listener();  
   stringstream cmd;
-  unsigned int cpus_per_qsub=8;
-  cmd << "echo cd $PWD ';";
   for (int i=0;i<slave_count;i++){
-    cmd  << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1;
+    cmd.str("");
+    cmd << "echo cd $PWD ';";
+    cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1 << " -p "<< threads;
     cmd << " -q " << query_filename << " -t " << target_filename;
-    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << " &";
-    if (i%cpus_per_qsub==cpus_per_qsub-1 || i==slave_count-1){
-      cmd << " wait '|qsub -l ncpus=" << cpus_per_qsub << " -N SL" << i+1;
-      cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
-      system(cmd.str().c_str());
-      cmd.str("");
-      cmd << "echo cd $PWD ';";
-    }
+    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << "'|qsub -l ncpus=" << threads << " -N SL" << i+1;
+    cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
+    system(cmd.str().c_str());
   }
 }
 

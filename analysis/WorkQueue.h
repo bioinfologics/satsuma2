@@ -38,7 +38,7 @@ typedef struct {
 //TODO: make the serve function a method, use a wrapper to call the method from the thread execution
 class WorkQueue {
   public:
-    WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, int _slave_count);
+    WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, int _slave_count, int _threads);
     void results_from_file(const char * );
     void setup_queue();
     void add_pair(int targetFrom, int targetTo, int queryFrom, int queryTo, bool fast);
@@ -58,6 +58,7 @@ class WorkQueue {
 
     char shutdown_status; // 0-normal operation; 1-shutdown requested; 2-clients finished and thread exited;
     int slave_count;
+    int threads;
     pthread_t server_thread;
     int minLen, queryChunk, targetChunk;
     string query_filename,target_filename;

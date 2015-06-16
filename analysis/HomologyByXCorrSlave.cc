@@ -194,23 +194,6 @@ int HomologyByXCorr::connect_to_master(){
   }
   //TODO: write own ID to server and wait for an OK
   
-  if (write(sockfd,&slave_id,sizeof(slave_id)) != sizeof(slave_id)) {
-    cout << "ERROR sending id to master" << endl;
-    close(sockfd);
-    return -1;
-  }
-  int server_reply;
-  if (read(sockfd,&server_reply,sizeof(server_reply)) < 0) {
-    cout << "ERROR reading reply from master" << endl;
-    close(sockfd);
-    return -1;
-  }
-  if (server_reply!=STATUS_OK){
-    cout << "ERROR master did not reply OK" << endl;
-    close(sockfd);
-    return -1;
-  }
-  
   return sockfd;
     
 }
@@ -337,12 +320,12 @@ int HomologyByXCorr::comm_loop(){
   //resolves the master address and creates the structs
   struct hostent *server;
   struct sockaddr_in serv_addr;
+  cout << "comm loop for "<<master_hostname.c_str()<<" "<<portno<<endl;
   server = gethostbyname(master_hostname.c_str());
   if (server == NULL) {
     cout << "ERROR resolving master hostname" << endl;
     return -1;
   }
-
   bzero((char *) &serv_addr, sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
   bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
@@ -352,25 +335,28 @@ int HomologyByXCorr::comm_loop(){
     //acquire lock on target_blocks
     targets_mutex.lock();
     //check targets<threads*4?
-    if (targets.size()<4*threads){
+    if (targets.size()<2*threads){
       targets_mutex.unlock();
       //PHASE 1: OPEN CONNECTION
-      int sockfd;
+      int sockfd=0;
       while (sockfd<=0) {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd <= 0){
           cout << "ERROR opening socket" << endl;
           continue;
         }
+
         if (connect(sockfd,(struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-          cout << "ERROR connecting to master" << endl;
+          cout << "ERROR connecting to master: " <<strerror(errno)<< endl;
           close(sockfd);
           sockfd=0;
+          continue;
         }
         if (write(sockfd,&slave_id,sizeof(slave_id)) != sizeof(slave_id)) {
           cout << "ERROR sending id to master" << endl;
           close(sockfd);
-          return -1;
+          sockfd=0;
+          continue;
         }
 
       }
@@ -387,9 +373,11 @@ int HomologyByXCorr::comm_loop(){
       //unlock results
       results_mutex.unlock();
       //write results into the socket
+      write(sockfd,&results_count,sizeof(results_count));
       write(sockfd,rv,results_count*sizeof(t_result));
       free(rv);
       //PHASE 3: GET TARGETS
+      cout<<"getting new targets"<<endl;
 
       //read target count (if -1, set processing_finished)
       int target_count;
@@ -402,10 +390,7 @@ int HomologyByXCorr::comm_loop(){
       if (target_count>0){
         tv=(t_pair *)malloc(target_count*sizeof(t_pair));
         read(sockfd,tv,target_count*sizeof(t_pair));
-      }
-      //close the socket
-      close(sockfd);
-      if (target_count>0){
+        close(sockfd);
         //lock targets
         targets_mutex.lock();
         //insert targets
@@ -413,11 +398,14 @@ int HomologyByXCorr::comm_loop(){
         //unlock targets
         targets_mutex.unlock();
         free(tv);
-      }
+      } else {
+        close(sockfd);
+      } 
+      cout<<target_count<<" targets added"<<endl;
     }
     else {
       targets_mutex.unlock();
-      sleep(1);
+      sleep(10);
     }
   }
 
@@ -505,15 +493,15 @@ int main( int argc, char** argv ){
     hbxc.create_chunks();
 
     //======= Main loop
-    cout<< "== launcing workers ==";
+    cout<< "== launching workers =="<<endl;
     
     std::thread workers[threads];
     for (int wt=0;wt<threads;wt++) {
       workers[wt]= std::thread(&HomologyByXCorr::work, std::ref(hbxc));
     }
-    cout<< "== Entering communication loop ==";
+    cout<< "== Entering communication loop =="<<endl;
     hbxc.comm_loop();
-    cout<< "== Processing finished, waiting for the slaves to die ==";
+    cout<< "== Processing finished, waiting for the slaves to die =="<<endl;
     for (int wt=0;wt<threads;wt++) {
       workers[wt].join();
     }
