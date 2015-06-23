@@ -203,20 +203,6 @@ void CCSignal::SetSequence(const DNAVector & b, int size)
   SeqToPCM(m_G, b, 'G');
   SeqToPCM(m_T, b, 'T');
 
-  //svec<float> tmp;
-
-  
-  /*
-  for (int x=0; x<2; x++) {
-    Smooth(tmp, m_A);
-    Smooth(m_A, tmp);
-    Smooth(tmp, m_C);
-    Smooth(m_C, tmp);
-    Smooth(tmp, m_G);
-    Smooth(m_G, tmp);
-    Smooth(tmp, m_T);
-    Smooth(m_T, tmp);
-    }*/
 }
 
 

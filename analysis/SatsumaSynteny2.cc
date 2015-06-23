@@ -348,8 +348,11 @@ int main( int argc, char** argv )
     cout << "Seed pre-filters finished" << endl;
   }
   
+  cout << "SATSUMA: Launching slaves, date and time: " << GetTimeStatic() << endl;
+  wq.setup_queue();//XXX totally wrong to name the slaves count like that!
   //ALG: processing the seeds. Why is this different to just process matches? (besides the filter)
   
+  cout << "SATSUMA: Loading KMATCH results, date and time: " << GetTimeStatic() << endl;
   unsigned long int new_matches_count;
   wq.collect_new_matches(matches); //matches.Read(seedFile);
   matches.Sort();
@@ -358,8 +361,6 @@ int main( int argc, char** argv )
 
   //=============================================================
 
-  cout << "SATSUMA: Launching slaves, date and time: " << GetTimeStatic() << endl;
-  wq.setup_queue();//XXX totally wrong to name the slaves count like that!
   
   //MultiMatches workMatches;
   cout << "SATSUMA: Entering main search loop, date and time: " << GetTimeStatic() << endl;
@@ -404,6 +405,7 @@ int main( int argc, char** argv )
       main_iteration--;
       continue;
     }
+    sleep(1);//wasting 1 second, we can live with this
     cout << "MAIN: Collecting " << targets_to_collect << " new targets from the grid " << endl;
     svec<GridTarget> newTargets;
     int realTargets = grid.CollectTargets(newTargets, targets_to_collect);
@@ -422,7 +424,7 @@ int main( int argc, char** argv )
                            << collect_status.matches << ", " \
                            << (collect_status.slaves ? ((double) collect_status.matches)/collect_status.slaves : 0 ) << ", " \
                            << targets_to_collect << ", " \
-                           << newTargets.isize() << endl;
+                           << newTargets.isize() << ", " << GetTimeStatic() << endl;
     if (first_match_seen==false && collect_status.matches) {
       first_match_seen=true;
     }
@@ -447,12 +449,12 @@ int main( int argc, char** argv )
 
   //ALG: write final output
   cout << "Writing final output!" << endl;
-  string finalOut = output + "/xcorr_aligns.almost.out"; 
+  string finalOut = output + "/xcorr_aligns.final.out"; 
   matches.Write(finalOut);
 
 
   //ALG: run ChainMatches
-  string mergeCmd = satsuma2_path;
+  /*string mergeCmd = satsuma2_path;
 
   mergeCmd += "/ChainMatches -i " + output + "/xcorr_aligns.almost.out";
   mergeCmd += " -o " + output + "/xcorr_aligns.final.out";
@@ -460,9 +462,9 @@ int main( int argc, char** argv )
   cout << "Running " << mergeCmd << endl;
   system(mergeCmd.c_str());
 
-
+  */
   //ALG: run /MergeXCorrMatches
-  mergeCmd = satsuma2_path;
+  string mergeCmd = satsuma2_path;
 
   mergeCmd += "/MergeXCorrMatches -i " + output + "/xcorr_aligns.final.out";
   mergeCmd += " -q " + sQuery + " -t " + sTarget;

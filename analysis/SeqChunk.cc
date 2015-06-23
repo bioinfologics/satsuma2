@@ -70,17 +70,17 @@ void SeqChunkSelect::MergeRead(const string & file)
 
 
 void ChunkManager::ChunkItSelect(vecDNAVector & out, 
-				 svec<SeqChunk> & chunks, 
-				 const vecDNAVector & in, 
-				 const svec<string> & names,
-				 const svec<int> & selection,
-				 int nBlocks,
-				 int myBlock,
-				 double line) 
+    svec<SeqChunk> & chunks, 
+    const vecDNAVector & in, 
+    const svec<string> & names,
+    const svec<int> & selection,
+    int nBlocks,
+    int myBlock,
+    double line) 
 {
-  
+
   m_lengths.resize(in.size(), 0);
-  
+
   int i, j;
   int n = 0;
   for (i=0; i<(int)in.size(); i++) {
@@ -89,18 +89,18 @@ void ChunkManager::ChunkItSelect(vecDNAVector & out,
     int l = (int)in[i].size();
     n += 1 + l / (m_size - m_overlap);
   }
-  
-  
+
+
   chunks.resize(n);
   out.resize(n);
-  
-  
+
+
   cout << "select=" << selection.isize() << "\tchunks=" << n << endl;
   if (selection.isize() > 0 && selection.isize() != n) {
     cout << "*************************************************" << endl;      
     cout << "ERROR: chunk size and selection do not match up!!" << endl;      
   }
-  
+
   int lastBlock = n;
   int firstBlock = 0;
   if (nBlocks > 0) {
@@ -114,8 +114,8 @@ void ChunkManager::ChunkItSelect(vecDNAVector & out,
     }      
     cout << "Will process target chunks " << firstBlock << " through " << lastBlock - 1 << endl;
   }
-  
-  
+
+
   if (line >= -0.1) {
     int theBlock = (int)(line * (double)n + 0.5);
     cout << "#### Assignment=" << line << ", pick block " << theBlock << endl;
@@ -123,7 +123,7 @@ void ChunkManager::ChunkItSelect(vecDNAVector & out,
     lastBlock = theBlock + 1;
   } 
 
-  
+
   int k = 0;
   for (i=0; i<(int)in.size(); i++) {
     m_lengths[i] = (int)in[i].size();
@@ -134,31 +134,31 @@ void ChunkManager::ChunkItSelect(vecDNAVector & out,
     for (j=0; j<nChunks; j++) {
       int start = j * (m_size - m_overlap);
       if (start < 0)
-	start = 0;
+        start = 0;
       int end = (j + 1) * (m_size - m_overlap) + m_overlap;
       if (end >= l)
-	end = l;
-      
+        end = l;
+
       //cout << "Selection i=" << i << " k=" << k << " sel=" << selection[k] << endl;
-      
+
       if (selection.isize() > 0) {
-	if (selection[k] > 0) {
-	  out[k].SetToSubOf(in[i], start, end-start);
-	}
+        if (selection[k] > 0) {
+          out[k].SetToSubOf(in[i], start, end-start);
+        }
       } else {
-	if (k >= firstBlock && k < lastBlock) {
-	  out[k].SetToSubOf(in[i], start, end-start);
-	  int n = CountNs(out[k]);
-	  if (n >= out[k].isize())
-	    out[k].clear();
-	}
+        if (k >= firstBlock && k < lastBlock) {
+          out[k].SetToSubOf(in[i], start, end-start);
+          int n = CountNs(out[k]);
+          if (n >= out[k].isize())
+            out[k].clear();
+        }
       }
-      
-      
-      
+
+
+
       chunks[k].Set(names[i], start, i);
       k++;
-      
+
     }
   }
   cout << "chunks: " << n << endl;

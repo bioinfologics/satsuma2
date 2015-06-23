@@ -130,7 +130,7 @@ void WorkQueue::submit_tasks() {
   write(conn_sockfd,&tp,sizeof(tp));
   write(conn_sockfd,p,sizeof(t_pair)*tp);
   if (tp){
-    cout<<"Slave "<<conn_clientID<<" will process "<<tp<<" pairs, I have "<<pending_pair_count()<<" pending pairs on the queue"<<endl;
+    //cout<<"Slave "<<conn_clientID<<" will process "<<tp<<" pairs, I have "<<pending_pair_count()<<" pending pairs on the queue"<<endl;
     if (idle_slaves[conn_clientID]) {
       cout<<"Slave "<<conn_clientID<<" is working now."<<endl;
       idle_slaves[conn_clientID]=false;
@@ -224,11 +224,26 @@ void WorkQueue::serve(){
   //ALG: shutdown
   cout<<"Shutting down all slaves";
   int alive_slaves=slave_count;
-  while (slave_count){
+  while (alive_slaves){
 
     //ALG: while slaves alive
     //ALG: wait on socket
-    //ALG: I don't care about you, just DIE
+    struct timeval tv;
+    tv.tv_sec=1;
+    tv.tv_usec=0;
+    FD_ZERO(&rfds);
+    FD_SET(sockfd, &rfds);
+    if (select(sockfd+1, &rfds, (fd_set *) 0, (fd_set *) 0, &tv)>0){
+      accept_client(); 
+      if (conn_sockfd>0){
+        receive_solutions();
+        //ALG: I don't care about you, just DIE
+        int tp=-1;
+        write(conn_sockfd,&tp,sizeof(tp));
+        alive_slaves--;
+      }
+      close(conn_sockfd);
+    }
   }
   return;
   //ALG: ---Listen Function Ends
@@ -294,6 +309,7 @@ void WorkQueue::setup_queue(){
   stringstream cmd;
   for (int i=0;i<slave_count;i++){
     cmd.str("");
+    //cmd << "echo cd $PWD ';export MALLOC_PER_THREAD=1;/opt/sgi/mpt/mpt-2.05/bin/omplace -nt 8 ";
     cmd << "echo cd $PWD ';";
     cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1 << " -p "<< threads;
     cmd << " -q " << query_filename << " -t " << target_filename;

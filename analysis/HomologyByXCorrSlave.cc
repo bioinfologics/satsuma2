@@ -21,6 +21,32 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+//global variables, cheating but should work
+
+/*FILE input is done once */
+vecDNAVector targetRaw, queryRaw; //holds the sequences
+svec<string> targetNames, queryNames; //holds the sequences names
+ChunkManager * cmQuery; //XXX: forced to use this as no default init
+ChunkManager * cmTarget; //XXX: forced to use this as no default init
+vecDNAVector target, query;
+svec<SeqChunk> targetInfo, queryInfo;
+double targetTotal;
+
+std::queue<t_pair> targets;
+std::mutex targets_mutex;
+std::mutex creation_mutex;
+std::vector<t_result> results;
+std::mutex results_mutex;
+std::mutex chunking_mutex;
+  int minLen;
+  int targetChunk;
+  int queryChunk;
+  double minProb;
+
+  double topCutoff;
+  double topCutoffFast;
+bool processing_finished=false;
+    string target_filename,query_filename;
 
 //====== XXX: REALLY????? =======================================
 int RCQuery(int offset, int start, int len, int chunkSize, int qLen) 
@@ -29,126 +55,85 @@ int RCQuery(int offset, int start, int len, int chunkSize, int qLen)
   return l;
 }
 
-//void Load(vecDNAVector & out, svec<string> & names, const string & file) 
-//{
-//  out.Read(file, names);
-
-//}
-//==============================================================
-
 class HomologyByXCorr
 {
-public:
-  HomologyByXCorr(string mHostname, int port, int _sid, int _threads, string qFilename, int qChunk, string tFilename, int tChunk, double _topCutoff, double _topCutoffFast) {
-    m_minLen = 0;
-    m_pMulti = NULL;
-    m_offset = 0;
-    m_qLen = 0;
-    m_chunk = 0;
-    m_tOffset = 0;
-    m_qID = -1;
-    m_tID = -1;
-    threads=_threads;
+  public:
+    HomologyByXCorr() {
+      m_minLen = minLen;
+      m_pMulti = NULL;
+      m_offset = 0;
+      m_qLen = 0;
+      m_chunk = 0;
+      m_tOffset = 0;
+      m_qID = -1;
+      m_tID = -1;
 
-    processing_finished=false;
-    m_targetSize = 0;
-    m_minProb = 0.99;
-    queryChunk=qChunk;
-    targetChunk=tChunk;
-    query_filename=qFilename;
-    target_filename=tFilename;
-    master_hostname=mHostname;
-    portno=port;
-    slave_id=_sid;
-    topCutoff=_topCutoff;
-    topCutoffFast=_topCutoffFast;
-  }
+      m_targetSize = 0;
+      m_minProb = 0.99;
+    }
 
-  void SetMinProb(double p) {
-    m_minProb = p;
-  }
+    void SetMinProb(double p) {
+      m_minProb = p;
+    }
 
-  void Align(int _target_id, CCSignal _target_signal, int _query_id, CCSignal _query_signal, CCSignal _query_rcsignal, bool fast);
+    void Align(int _target_id, const CCSignal & _target_signal, int _query_id, const CCSignal & _query_signal, const CCSignal & _query_rcsignal, bool fast);
 
-  void SetTargetSize(double i) {
-    m_targetSize = i;
-  }
+    void SetTargetSize(double i) {
+      m_targetSize = i;
+    }
 
-  void SetMinimumAlignLen(int l) {
-    m_minLen = l;
-  }
+    void SetMinimumAlignLen(int l) {
+      m_minLen = l;
+    }
 
-  void disconnect_from_master();
-  int connect_to_master();
-  void create_chunks();
-  int get_targets_from_master();
-  void send_solutions_to_master();
-  std::vector<CCSignal> create_signals(vecDNAVector _sequences, unsigned long int _from, unsigned long int _count, bool reverse);
-  void align(t_pair p);
-  void FilterMatches(int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse);
-  void work();
-  int comm_loop();
+    void disconnect_from_master();
+    int connect_to_master();
+    void create_chunks();
+    int get_targets_from_master();
+    void send_solutions_to_master();
+    std::vector<CCSignal> create_signals(const vecDNAVector & _sequences, unsigned long int _from, unsigned long int _count, bool reverse);
+    void align_target(t_pair p);
+    void FilterMatches(int _target_id, int _query_id, const vecSeqMatch & _matches, bool _reverse);
+    void work();
 
 
-private:
-  int sid;
-  int threads;
-  int m_minLen;
-  double topCutoff, topCutoffFast;
-  double targetTotal;
-  svec<int> m_bestID;
-  svec<double> m_ident;
-  MultiMatches * m_pMulti;
-  std::queue<t_pair> targets;
-  std::mutex targets_mutex;
-  std::vector<t_result> results;
-  std::mutex results_mutex;
+  private:
+    int sid;
+    int threads;
+    int m_minLen;
+    svec<int> m_bestID;
+    svec<double> m_ident;
+    MultiMatches * m_pMulti;
 
-  int m_tID;
-  int m_qID;
-  int m_tOffset;
-  int m_offset;
-  int m_qLen;
-  int m_chunk;
-  double m_targetSize;
-  double m_minProb;
+    int m_tID;
+    int m_qID;
+    int m_tOffset;
+    int m_offset;
+    int m_qLen;
+    int m_chunk;
+    double m_targetSize;
+    double m_minProb;
 
-  bool processing_finished;
-  int sockfd;
-  string master_hostname;
-  int portno;
-  unsigned int slave_id;
-  int num_targets;
-  int queryChunk,targetChunk;
-  string target_filename,query_filename;
-  vecDNAVector target, query;
-  svec<string> targetNames, queryNames; //holds the sequences names
-  ChunkManager * cmQuery; //XXX: forced to use this as no default init
-  ChunkManager * cmTarget; //XXX: forced to use this as no default init
-  svec<SeqChunk> targetInfo, queryInfo;
- 
+    int sockfd;
+    string master_hostname;
+    int portno;
+    unsigned int slave_id;
+    int num_targets;
+
 
 
 };
 
 void HomologyByXCorr::create_chunks(){
   //Loads both the query and the target files into memory
-  vecDNAVector targetRaw, queryRaw; //holds the sequences
-  cout << "Loading query sequence:  " << query_filename << endl;
-  queryRaw.Read(query_filename,queryNames);
-  cout << " - Creating chunks..."<<endl;
+  cout << " - Creating query chunks..."<<endl;
   cmQuery = new ChunkManager(queryChunk,0);
   cmQuery->ChunkIt(query, queryInfo, queryRaw, queryNames, 0, 0);
-  queryRaw.clear();
 
-
-  cout << "Loading target sequence:  " << target_filename << endl;
-  targetRaw.Read(target_filename,targetNames);
   cout << " - Creating chunks..."<<endl;
   cmTarget = new ChunkManager(targetChunk, targetChunk / 4);
   cmTarget->ChunkIt(target, targetInfo, targetRaw, targetNames, 0, 0);
-  targetRaw.clear();
-  cout << "Done loading and chunking." << endl;
+  cout << "Done chunking." << endl;
 
   //TODO: set total target size and check if needed to create the multi!!!!!!
   targetTotal = 0;
@@ -157,8 +142,6 @@ void HomologyByXCorr::create_chunks(){
   }
 
 }
-
-
 void HomologyByXCorr::disconnect_from_master(){
   //TODO: should we clear the target-pair queue here?
   close(sockfd);
@@ -193,131 +176,251 @@ int HomologyByXCorr::connect_to_master(){
     return -1;
   }
   //TODO: write own ID to server and wait for an OK
-  
+
   return sockfd;
-    
+
 }
-void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, vecSeqMatch _matches, bool _reverse){
-    int len, tStart, qStart;
-    for (int j=0; j<_matches.isize(); j++) {
-        if (_matches[j].GetLength() < m_minLen)
-            continue;
+void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const vecSeqMatch & _matches, bool _reverse){
+  int len, tStart, qStart;
+  std::vector<t_result> local_results;
+  for (int j=0; j<_matches.isize(); j++) {
+    if (_matches[j].GetLength() < m_minLen)
+      continue;
 
-        len = _matches[j].GetLength();
-        tStart = targetInfo[_target_id].GetStart() + _matches[j].GetStartTarget();
-        if (!_reverse) {
-            qStart = queryInfo[_query_id].GetStart() +  _matches[j].GetStartQuery();
-        }else{
-            qStart = RCQuery(queryInfo[_query_id].GetStart(), _matches[j].GetStartQuery(), len, queryChunk, cmQuery->GetSize(queryInfo[_query_id].GetID()));
-        }
-
-        double prob = GetMatchProbability(target[_target_id],
-                query[_query_id],
-                _matches[j].GetStartTarget(),
-                _matches[j].GetStartQuery(),
-                _matches[j].GetLength(),
-                targetTotal);
-
-        if (prob < m_minProb)
-            continue;
-
-        //cout << "Match # " << j << " probability " << 100.* prob << " %" << endl;
-        //cout << "Start target: " << tStart << " - " << tStart + len << endl;
-        double ident = PrintMatch(query[_query_id], target[_target_id], _matches[j], true);//XXX: does this really print? PERFORMANCE!!!
-        t_result r;
-        r.query_id=queryInfo[_query_id].GetID();
-        r.target_id=targetInfo[_target_id].GetID();
-        r.query_size=cmQuery->GetSize(r.query_id);
-        r.qstart=qStart;
-        r.tstart=tStart;
-        r.len=len;
-        r.reverse=_reverse;
-        r.prob=prob;
-        r.ident=ident;
-        results_mutex.lock();
-        results.push_back(r);
-        results_mutex.unlock();
+    len = _matches[j].GetLength();
+    tStart = targetInfo[_target_id].GetStart() + _matches[j].GetStartTarget();
+    if (!_reverse) {
+      qStart = queryInfo[_query_id].GetStart() +  _matches[j].GetStartQuery();
+    }else{
+      qStart = RCQuery(queryInfo[_query_id].GetStart(), _matches[j].GetStartQuery(), len, queryChunk, cmQuery->GetSize(queryInfo[_query_id].GetID()));
     }
+
+    double prob = GetMatchProbability(target[_target_id],
+        query[_query_id],
+        _matches[j].GetStartTarget(),
+        _matches[j].GetStartQuery(),
+        _matches[j].GetLength(),
+        targetTotal);
+
+    if (prob < m_minProb)
+      continue;
+
+    //cout << "Match # " << j << " probability " << 100.* prob << " %" << endl;
+    //cout << "Start target: " << tStart << " - " << tStart + len << endl;
+    double ident = PrintMatch(query[_query_id], target[_target_id], _matches[j], true);//XXX: does this really print?
+    t_result r;
+    r.query_id=queryInfo[_query_id].GetID();
+    r.target_id=targetInfo[_target_id].GetID();
+    r.query_size=cmQuery->GetSize(r.query_id);
+    r.qstart=qStart;
+    r.tstart=tStart;
+    r.len=len;
+    r.reverse=_reverse;
+    r.prob=prob;
+    r.ident=ident;
+    local_results.push_back(r);
+  }
+  results_mutex.lock();
+  results.insert( results.end(), local_results.begin(), local_results.end() );
+  results_mutex.unlock();
 
 }
 
 void HomologyByXCorr::Align(
-        int _target_id,
-        CCSignal _target_signal, 
-        int _query_id,
-        CCSignal _query_signal, 
-        CCSignal _query_rcsignal, 
-        bool _fast)
+    int _target_id,
+    const CCSignal & _target_signal, 
+    int _query_id,
+    const CCSignal & _query_signal, 
+    const CCSignal & _query_rcsignal, 
+    bool _fast)
 {
-    CrossCorrelation xc;
-    vecSeqMatch matches,revmatches;
-    SeqAnalyzer sa;
-    int i, j;
-    svec<float> result,revresult; 
+  CrossCorrelation xc;
+  vecSeqMatch matches,revmatches;
+  SeqAnalyzer sa;
+  int i, j;
+  svec<float> result,revresult; 
 
-    sa.SetTopCutoff((_fast ? topCutoffFast : topCutoff));
+  sa.SetTopCutoff((_fast ? topCutoffFast : topCutoff));
 
-    xc.CrossCorrelate(result, _target_signal, _query_signal);
-    matches.clear();
-    sa.MatchUp(matches, query[_query_id], target[_target_id], result);
-    FilterMatches(_target_id, _query_id, matches, false);
+  xc.CrossCorrelate(result, _target_signal, _query_signal);
+  matches.clear();
+  sa.MatchUp(matches, query[_query_id], target[_target_id], result);
+  FilterMatches(_target_id, _query_id, matches, false);
 
-    xc.CrossCorrelate(revresult, _target_signal, _query_rcsignal);
-    revmatches.clear();
-    sa.MatchUp(revmatches, query[_query_id], target[_target_id], revresult);
-    FilterMatches(_target_id, _query_id, revmatches, true);
+  xc.CrossCorrelate(revresult, _target_signal, _query_rcsignal);
+  revmatches.clear();
+  sa.MatchUp(revmatches, query[_query_id], target[_target_id], revresult);
+  FilterMatches(_target_id, _query_id, revmatches, true);
 
 }
-std::vector<CCSignal> HomologyByXCorr::create_signals( vecDNAVector _sequences, unsigned long int _from, unsigned long int _count, bool reverse){
-    cout<<"creating signals..."<<endl;
-    std::vector<CCSignal> signals;
-    signals.resize(_count);
-    for (unsigned long int i=0;i<_count;i++){
-        if (!reverse){
-            signals[i].SetSequence(_sequences[_from+i], targetChunk *2);//XXX should chunkSize be a parameter???
-        }else{
-            DNAVector revseq=_sequences[_from+i];
-            revseq.ReverseComplement();
-            signals[i].SetSequence(revseq, targetChunk *2);//XXX should chunkSize be a parameter???
-        }
+std::vector<CCSignal> HomologyByXCorr::create_signals( const vecDNAVector & _sequences, unsigned long int _from, unsigned long int _count, bool reverse){
+  std::vector<CCSignal> signals;
+  signals.resize(_count);
+  for (unsigned long int i=0;i<_count;i++){
+    if (!reverse){
+      signals[i].SetSequence(_sequences[_from+i], targetChunk *2);//XXX should chunkSize be a parameter???
+    }else{
+      DNAVector revseq=_sequences[_from+i];
+      revseq.ReverseComplement();
+      signals[i].SetSequence(revseq, targetChunk *2);//XXX should chunkSize be a parameter???
     }
-    return signals;
+  }
+  return signals;
 
 }
 
-void HomologyByXCorr::align(t_pair p){
+void HomologyByXCorr::align_target(t_pair p){
 
-    cout<<"Align block running (block: - t:"<<p.targetFrom<<"-"<<p.targetTo<<" q:"<<p.queryFrom<<"-"<<p.queryTo<<")"<<endl;
-    //XXX: is this storage correct? create all signals for the target and query spaces
-    std::vector<CCSignal> targetSignals;
-    std::vector<CCSignal> querySignals;
-    std::vector<CCSignal> querySignalsReverse;
-    unsigned long int target_count, query_count;
+  //cout<<"Align block running (block: - t:"<<p.targetFrom<<"-"<<p.targetTo<<" q:"<<p.queryFrom<<"-"<<p.queryTo<<")"<<endl;
+  //XXX: is this storage correct? create all signals for the target and query spaces
+  std::vector<CCSignal> targetSignals;
+  std::vector<CCSignal> querySignals;
+  std::vector<CCSignal> querySignalsReverse;
+  unsigned long int target_count, query_count;
 
-    //Create all signals
-    //XXX: is To included or not?
-    target_count=p.targetTo+1-p.targetFrom;
-    query_count=p.queryTo+1-p.queryFrom;
-    //XXX what is the coordinates, how are them set?
-    targetSignals = create_signals(target, p.targetFrom, target_count, false);
-    querySignals = create_signals(query, p.queryFrom, query_count, false);
-    querySignalsReverse = create_signals(query, p.queryFrom, query_count, true);
+  //Create all signals
+  //XXX: is To included or not?
+  target_count=p.targetTo+1-p.targetFrom;
+  query_count=p.queryTo+1-p.queryFrom;
+  //XXX what is the coordinates, how are them set?
+  targetSignals = create_signals(target, p.targetFrom, target_count, false);
+  querySignals = create_signals(query, p.queryFrom, query_count, false);
+  querySignalsReverse = create_signals(query, p.queryFrom, query_count, true);
 
-    //cout<<"Block "<<pair_id<<" signals created..."<<endl;
+  //cout<<"Block "<<pair_id<<" signals created..."<<endl;
 
-    for (unsigned long int qi=0; qi<query_count; qi++){
-        //for each query
-        for (unsigned long int ti=0; ti<target_count; ti++){
-            //for each target
-            Align(
-                    p.targetFrom+ti, targetSignals[ti],
-                    p.queryFrom+qi, querySignals[qi], querySignalsReverse[qi],
-                    p.fast);
-        }
+  for (unsigned long int qi=0; qi<query_count; qi++){
+    //for each query
+    for (unsigned long int ti=0; ti<target_count; ti++){
+      //for each target
+      Align(
+          p.targetFrom+ti, targetSignals[ti],
+          p.queryFrom+qi, querySignals[qi], querySignalsReverse[qi],
+          p.fast);
     }
+  }
 }
-int HomologyByXCorr::comm_loop(){
-  //resolves the master address and creates the structs
+
+void HomologyByXCorr::work(){
+  //cout <<" I finished creating the chunks!!!!!"<<endl;
+  //Work loop, gets targets from master and reports back
+  while(!processing_finished){
+    //locks targets
+    targets_mutex.lock();
+    //pops a target
+    if (!targets.empty()){
+      t_pair p=targets.front();
+      targets.pop();
+      targets_mutex.unlock();
+      align_target(p);
+    } else {
+      targets_mutex.unlock();
+      sleep(1);
+    }
+  }
+}
+
+void launch_worker(){
+    HomologyByXCorr hbxc;
+    cout<<"worker created, now to work!!!"<<endl;
+    hbxc.work();
+}
+
+
+//================================================================
+//================================================================
+//================================================================
+int main( int argc, char** argv ){
+  //======= Parse arguments =======
+  //TODO: how much of this can come form the master with the instructions?
+  commandArg<string> mStringCmmd("-master","name of the submit host");
+  commandArg<int> portIntCmmd("-port","port of the master to connect", MYPORT);
+  commandArg<int> sidIntCmmd("-sid","slave_id");
+  commandArg<int> threadsIntCmmd("-p","number of working processes (threads)",1);
+  commandArg<string> aStringCmmd("-q","query fasta sequence");
+  commandArg<string> bStringCmmd("-t","target fasta sequence");
+  commandArg<int> lIntCmmd("-l","minimum alignment length", 0);
+  commandArg<int> qChunkCmmd("-q_chunk","query chunk size", 4096);
+  commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
+  commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.9999);
+  commandArg<double> cutoffCmmd("-cutoff","signal selection cutoff", 1.8);
+  commandArg<double> cutoffFastCmmd("-cutoff_fast","signal selection cutoff (fast)", 2.9);
+
+
+  commandLineParser P(argc,argv);
+  P.SetDescription("Compares two sequences via cross-correlation");
+  P.registerArg(mStringCmmd);
+  P.registerArg(portIntCmmd);
+  P.registerArg(threadsIntCmmd);
+  P.registerArg(sidIntCmmd);
+  P.registerArg(aStringCmmd);
+  P.registerArg(bStringCmmd);
+  P.registerArg(lIntCmmd);
+
+  P.registerArg(qChunkCmmd);
+  P.registerArg(tChunkCmmd);
+  P.registerArg(probCmmd);
+  P.registerArg(cutoffCmmd);
+  P.registerArg(cutoffFastCmmd);
+
+  P.parse();
+
+  string master_hostname = P.GetStringValueFor(mStringCmmd);
+  int portno = P.GetIntValueFor(portIntCmmd);
+  int slave_id = P.GetIntValueFor(sidIntCmmd);
+  int threads = P.GetIntValueFor(threadsIntCmmd);
+  query_filename = P.GetStringValueFor(aStringCmmd);
+  target_filename = P.GetStringValueFor(bStringCmmd);
+  minLen = P.GetIntValueFor(lIntCmmd);
+  targetChunk = P.GetIntValueFor(tChunkCmmd);
+  queryChunk = P.GetIntValueFor(qChunkCmmd);
+  minProb = P.GetDoubleValueFor(probCmmd);
+
+  topCutoff = P.GetDoubleValueFor(cutoffCmmd);
+  topCutoffFast = P.GetDoubleValueFor(cutoffFastCmmd);
+
+  //======= Pre-Loading fasta files  =======
+  cout << "Loading query sequence:  " << query_filename << endl;
+  queryRaw.Read(query_filename,queryNames);
+  cout << " - Creating query chunks..."<<endl;
+  cmQuery = new ChunkManager(queryChunk,0);
+  cmQuery->ChunkIt(query, queryInfo, queryRaw, queryNames, 0, 0);
+  queryRaw.clear();
+  cout<<"DONE"<<endl;
+
+
+  cout << "Loading target sequence:  " << target_filename << endl;
+  targetRaw.Read(target_filename,targetNames);
+  cout << " - Creating target chunks..."<<endl;
+  cmTarget = new ChunkManager(targetChunk, targetChunk / 4);
+  cmTarget->ChunkIt(target, targetInfo, targetRaw, targetNames, 0, 0);
+  targetRaw.clear();
+  
+  //TODO: set total target size and check if needed to create the multi!!!!!!
+  targetTotal = 0;
+  for (int i=0; i<cmTarget->GetCount(); i++) {
+    targetTotal += (double)cmTarget->GetSize(i);
+  }
+  cout<<"DONE"<<endl;
+
+  //======= Main loop
+  cout<< "== launching workers =="<<endl;
+
+  std::thread workers[threads];
+  /*for (int wt=0;wt<threads;wt++) {
+    hbxc.push_back(HomologyByXCorr(sQuery,queryChunk,sTarget,targetChunk,topCutoff,topCutoffFast));
+    hbxc[wt].SetMinimumAlignLen(minLen);
+  }
+  for (int wt=0;wt<threads;wt++) {
+    workers[wt]= std::thread(&HomologyByXCorr::work, std::ref(hbxc[wt]));
+  }*/
+  /*create_chunks(query_filename,target_filename);*/
+  for (int wt=0;wt<threads;wt++) {
+    workers[wt]= std::thread(launch_worker);
+  }
+
+  cout<< "== Entering communication loop =="<<endl;
+  //server name resolution and such
   struct hostent *server;
   struct sockaddr_in serv_addr;
   cout << "comm loop for "<<master_hostname.c_str()<<" "<<portno<<endl;
@@ -343,6 +446,7 @@ int HomologyByXCorr::comm_loop(){
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd <= 0){
           cout << "ERROR opening socket" << endl;
+          sleep(1);
           continue;
         }
 
@@ -350,12 +454,14 @@ int HomologyByXCorr::comm_loop(){
           cout << "ERROR connecting to master: " <<strerror(errno)<< endl;
           close(sockfd);
           sockfd=0;
+          sleep(1);
           continue;
         }
         if (write(sockfd,&slave_id,sizeof(slave_id)) != sizeof(slave_id)) {
           cout << "ERROR sending id to master" << endl;
           close(sockfd);
           sockfd=0;
+          sleep(1);
           continue;
         }
 
@@ -365,7 +471,7 @@ int HomologyByXCorr::comm_loop(){
       results_mutex.lock();
       //create a single big-mem-structure with all the results copied into it plus their count at the begining
       t_result * rv;
-      size_t results_count=results.size();
+      unsigned int results_count=results.size();
       rv=(t_result *) malloc(results_count*sizeof(t_result));
       memcpy(rv,results.data(),results_count*sizeof(t_result));
       //clean results
@@ -377,8 +483,6 @@ int HomologyByXCorr::comm_loop(){
       write(sockfd,rv,results_count*sizeof(t_result));
       free(rv);
       //PHASE 3: GET TARGETS
-      cout<<"getting new targets"<<endl;
-
       //read target count (if -1, set processing_finished)
       int target_count;
       t_pair * tv;
@@ -401,109 +505,16 @@ int HomologyByXCorr::comm_loop(){
       } else {
         close(sockfd);
       } 
-      cout<<target_count<<" targets added"<<endl;
+      if (target_count>=0) cout<<target_count<<" targets added"<<endl;
     }
     else {
       targets_mutex.unlock();
       sleep(10);
     }
   }
+  cout<< "== Processing finished, waiting for the slaves to die =="<<endl;
+  for (int wt=0;wt<threads;wt++) {
+    workers[wt].join();
+  }
 
-}
-
-void HomologyByXCorr::work(){
-    //Work loop, gets targets from master and reports back
-    while(!processing_finished){
-        //locks targets
-        targets_mutex.lock();
-        //pops a target
-        if (!targets.empty()){
-          t_pair p=targets.front();
-          targets.pop();
-          targets_mutex.unlock();
-          align(p);
-        } else {
-          targets_mutex.unlock();
-          sleep(1);
-        }
-    }
-}
-
-
-
-
-//================================================================
-//================================================================
-//================================================================
-int main( int argc, char** argv ){
-    //======= Parse arguments =======
-    //TODO: how much of this can come form the master with the instructions?
-    commandArg<string> mStringCmmd("-master","name of the submit host");
-    commandArg<int> portIntCmmd("-port","port of the master to connect", MYPORT);
-    commandArg<int> sidIntCmmd("-sid","slave_id");
-    commandArg<int> threadsIntCmmd("-p","number of working processes (threads)",1);
-    commandArg<string> aStringCmmd("-q","query fasta sequence");
-    commandArg<string> bStringCmmd("-t","target fasta sequence");
-    commandArg<int> lIntCmmd("-l","minimum alignment length", 0);
-    commandArg<int> qChunkCmmd("-q_chunk","query chunk size", 4096);
-    commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
-    commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.9999);
-    commandArg<double> cutoffCmmd("-cutoff","signal selection cutoff", 1.8);
-    commandArg<double> cutoffFastCmmd("-cutoff_fast","signal selection cutoff (fast)", 2.9);
-
-
-    commandLineParser P(argc,argv);
-    P.SetDescription("Compares two sequences via cross-correlation");
-    P.registerArg(mStringCmmd);
-    P.registerArg(portIntCmmd);
-    P.registerArg(threadsIntCmmd);
-    P.registerArg(sidIntCmmd);
-    P.registerArg(aStringCmmd);
-    P.registerArg(bStringCmmd);
-    P.registerArg(lIntCmmd);
-
-    P.registerArg(qChunkCmmd);
-    P.registerArg(tChunkCmmd);
-    P.registerArg(probCmmd);
-    P.registerArg(cutoffCmmd);
-    P.registerArg(cutoffFastCmmd);
-
-    P.parse();
-
-    string master = P.GetStringValueFor(mStringCmmd);
-    int port = P.GetIntValueFor(portIntCmmd);
-    int sid = P.GetIntValueFor(sidIntCmmd);
-    int threads = P.GetIntValueFor(threadsIntCmmd);
-    string sQuery = P.GetStringValueFor(aStringCmmd);
-    string sTarget = P.GetStringValueFor(bStringCmmd);
-    int minLen = P.GetIntValueFor(lIntCmmd);
-    int targetChunk = P.GetIntValueFor(tChunkCmmd);
-    int queryChunk = P.GetIntValueFor(qChunkCmmd);
-    double minProb = P.GetDoubleValueFor(probCmmd);
-
-    double topCutoff = P.GetDoubleValueFor(cutoffCmmd);
-    double topCutoffFast = P.GetDoubleValueFor(cutoffFastCmmd);
-    
-    //======= Initialize Classes =======
-    cout << "Initializing HomologyByXCorr class..."<<endl;
-    HomologyByXCorr hbxc(master,port,sid,threads,sQuery,queryChunk,sTarget,targetChunk,topCutoff,topCutoffFast);
-    hbxc.SetMinimumAlignLen(minLen);
-    cout<<"DONE"<<endl;
-    //======= Load Genomes =======
-    hbxc.create_chunks();
-
-    //======= Main loop
-    cout<< "== launching workers =="<<endl;
-    
-    std::thread workers[threads];
-    for (int wt=0;wt<threads;wt++) {
-      workers[wt]= std::thread(&HomologyByXCorr::work, std::ref(hbxc));
-    }
-    cout<< "== Entering communication loop =="<<endl;
-    hbxc.comm_loop();
-    cout<< "== Processing finished, waiting for the slaves to die =="<<endl;
-    for (int wt=0;wt<threads;wt++) {
-      workers[wt].join();
-    }
-    
 }
