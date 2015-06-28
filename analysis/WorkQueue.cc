@@ -3,23 +3,6 @@
 #endif
 
 
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h> 
-#include <ctime>
-#include "base/CommandLineParser.h"
-#include "analysis/SequenceMatch.h"
-#include "analysis/GridSearch.h"
-#include "analysis/SeqChunk.h"
-#include "analysis/MatchDynProg.h"
-#include "util/SysTime.h"
-#include <math.h>
-#include <pthread.h>
-#include <thread>
-#include <mutex>
-#include <netinet/in.h> 
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include "analysis/WorkQueue.h"
 
 
@@ -79,13 +62,6 @@ void WorkQueue::get_pair(t_pair * p, unsigned int pair_id){
   pairs_mutex.lock();
   memcpy(p,&pairs[pair_id],sizeof(t_pair));
   pairs_mutex.unlock();
-}
-
-static void * thread_serve(void * args){
-  //ALG: ---Listen Function Starts
-  WorkQueue * wq= (WorkQueue *)args;
-  wq->serve();
-  return NULL;
 }
 
 //Accepts connection then returns new socket
@@ -286,7 +262,7 @@ void WorkQueue::start_listener(){
   //TODO spawns a thread to listen on the socket
   port=portno;
   cout<<"Spawning a thread to serve the WorkQueue on port "<<portno<<endl;
-  pthread_create(&server_thread,NULL,thread_serve,this);
+  server_thread=std::thread(&WorkQueue::serve,std::ref(this));
 }
 
 void WorkQueue::close_queue(){

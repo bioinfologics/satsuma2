@@ -1,4 +1,19 @@
+#ifndef _WORKQUEUE_H_
+#define _WORKQUEUE_H_
+
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include "analysis/SequenceMatch.h"
+#include "analysis/SeqChunk.h"
+#include "util/SysTime.h"
+#include <math.h>
+#include <thread>
 #include <mutex>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+
 typedef struct {
   int targetFrom, targetTo, queryFrom, queryTo;
   bool fast;
@@ -58,7 +73,7 @@ class WorkQueue {
     char shutdown_status; // 0-normal operation; 1-shutdown requested; 2-clients finished and thread exited;
     int slave_count;
     int threads;
-    pthread_t server_thread;
+    std::thread server_thread;
     int minLen, queryChunk, targetChunk;
     string query_filename,target_filename;
     double minProb, sigCutoff;
@@ -80,3 +95,5 @@ class WorkQueue {
     
 
 };
+
+#endif

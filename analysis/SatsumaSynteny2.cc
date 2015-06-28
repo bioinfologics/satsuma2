@@ -14,7 +14,6 @@
 #include "analysis/MatchDynProg.h"
 #include "util/SysTime.h"
 #include <math.h>
-#include <pthread.h>
 #include <netinet/in.h> 
 #include <sys/socket.h>
 #include "analysis/WorkQueue.h"
