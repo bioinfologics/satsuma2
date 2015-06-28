@@ -15,6 +15,8 @@
 #include "util/SysTime.h"
 #include <math.h>
 #include <pthread.h>
+#include <thread>
+#include <mutex>
 #include <netinet/in.h> 
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -34,7 +36,6 @@ WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarg
   gethostname(master_hostname, sizeof(master_hostname));
   shutdown_status=0;
   port=MYPORT;
-  pthread_mutex_init(&pairs_mutex,NULL);
   last_connections.resize(_slave_count);
   slaves_finished_count=0;
 }
@@ -48,36 +49,36 @@ void WorkQueue::add_pair(int _targetFrom, int _targetTo, int _queryFrom, int _qu
   p.fast=_fast;
   p.slave_id=0;
   p.status=0;
-  pthread_mutex_lock(&pairs_mutex);
+  pairs_mutex.lock();
   pairs.push_back(p);
-  pthread_mutex_unlock(&pairs_mutex);
+  pairs_mutex.unlock();
 }
 unsigned int WorkQueue::pending_pair_count(){
   unsigned int p=0;
-  pthread_mutex_lock(&pairs_mutex);
+  pairs_mutex.lock();
   for (unsigned int i=0;i<pairs.size();i++)
     if (pairs[i].status==0) p++;
-  pthread_mutex_unlock(&pairs_mutex);
+  pairs_mutex.unlock();
   return p;
 }
 
 int WorkQueue::next_pair_to_process(unsigned int slave_id){
   int p=0;
-  pthread_mutex_lock(&pairs_mutex);
+  pairs_mutex.lock();
   //TODO: optimization, save the number of the last completely processed pair and start looking from there onwards.
   for (p=0;p<pairs.size()&&pairs[p].status!=0;p++);
   if (p<pairs.size()) {
     pairs[p].slave_id=slave_id;
     pairs[p].status=1;
   } else p=-1;
-  pthread_mutex_unlock(&pairs_mutex);
+  pairs_mutex.unlock();
   return p;
 }
 
 void WorkQueue::get_pair(t_pair * p, unsigned int pair_id){
-  pthread_mutex_lock(&pairs_mutex);
+  pairs_mutex.lock();
   memcpy(p,&pairs[pair_id],sizeof(t_pair));
-  pthread_mutex_unlock(&pairs_mutex);
+  pairs_mutex.unlock();
 }
 
 static void * thread_serve(void * args){
@@ -151,9 +152,9 @@ void WorkQueue::receive_solutions() {
   //ALG: reads ammount of results
   //TODO:should check for ammounts of bytes readed here too!!!
   //cout<<"Slave is sending solutions..."<<endl;
-  pthread_mutex_lock(&results_mutex);
+  results_mutex.lock();
   slaves_finished_count++;
-  pthread_mutex_unlock(&results_mutex);
+  results_mutex.unlock();
   unsigned int solcount;
   read(conn_sockfd,&solcount,sizeof(solcount));
   //ALG: reads results into temp variable TODO: validation!!!
@@ -169,7 +170,7 @@ void WorkQueue::receive_solutions() {
       ioctl(conn_sockfd, FIONREAD, &availb);
     }
     int n=read(conn_sockfd,&r,sizeof(t_result));
-    pthread_mutex_lock(&results_mutex);
+    results_mutex.lock();
     resultsv.push_back(r);
     if (r.len==0 || r.query_size==0 || n!=sizeof(t_result)) {cout<<"ERROR: NEW Match received from slave "<<conn_clientID<<" saved to position "<<resultsv.size()<<" looks wrong!"<<endl;
       cout<<": "<<n<<"/"<<sizeof(t_result)<<" bytes received"<<endl;
@@ -183,7 +184,7 @@ void WorkQueue::receive_solutions() {
       cout<<": prob="<<r.prob<<endl;
       cout<<": ident="<<r.ident<<endl;
     }
-    pthread_mutex_unlock(&results_mutex);
+    results_mutex.unlock();
   }
 }
 
@@ -273,8 +274,7 @@ void WorkQueue::start_listener(){
   //try up to 100 port numbers (in case port is used)
   for(portno=port;portno<port+100;portno++){
     serv_addr.sin_port = htons(portno);
-    if (bind(sockfd, (struct sockaddr *) &serv_addr,
-          sizeof(serv_addr)) < 0) 
+    if (::bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
       cout<<"ERROR on binding"<<endl;
     else
       break;
@@ -325,7 +325,7 @@ t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
   //ALG: mutex start
   unsigned long int i;
   t_collect_status status;
-  pthread_mutex_lock(&results_mutex);
+  results_mutex.lock();
   //ALG: update the MultiMatch
   for (i=0;i<resultsv.size();i++){
     SingleMatch m;
@@ -354,6 +354,6 @@ t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
   status.matches=i;
   if (status.matches>0 and status.slaves==0) status.slaves=1; //XXX: wrong way to resolve race!!!
   slaves_finished_count=0;
-  pthread_mutex_unlock(&results_mutex);
+  results_mutex.unlock();
   return status;
 }
