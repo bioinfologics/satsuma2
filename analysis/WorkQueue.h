@@ -1,5 +1,4 @@
-
-
+#include <mutex>
 typedef struct {
   int targetFrom, targetTo, queryFrom, queryTo;
   bool fast;
@@ -67,9 +66,9 @@ class WorkQueue {
     int port;
     unsigned long int slaves_finished_count;
 
-    pthread_mutex_t pairs_mutex;
+    std::mutex pairs_mutex;
     std::vector<t_pair> pairs; //XXX: beware, all access to this should be mutexed!!!
-    pthread_mutex_t results_mutex;
+    std::mutex results_mutex;
     std::vector<t_result> resultsv;
     
     int sockfd;
