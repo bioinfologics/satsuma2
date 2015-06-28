@@ -440,10 +440,10 @@ int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
     //cout << targets[i].QueryFirst() << "-" << targets[i].QueryLast() << "]" << endl;
   }
   //XXX: SEED targets disabled!
-  /*if (targets.isize() < n) {
+  if (targets.isize() < n) {
     cout << "Adding in SEED targets..." << endl;
     CollectSeeds(targets, n-targets.isize());
-  }*/
+  }
 
   //for (i=0; i<targets.isize(); i++) {
   //  if (targets[i].IsFast())

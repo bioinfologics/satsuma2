@@ -465,7 +465,6 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
   mult_query.resize(in.GetQueryCount());
 
   out.SetCounts(in.GetTargetCount(), in.GetQueryCount());
-  cout << "Chaining (inline)... First for" << endl;
   for (i=0; i<in.GetTargetCount(); i++) {
     out.SetTargetSize(i, in.GetTargetSize(i));
     out.SetTargetName(i, in.GetTargetName(i));
@@ -474,7 +473,6 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
     for (j=0; j<in.GetTargetSize(i); j++)
       q[j] = 0;
   }
-  cout << "Chaining (inline)... Second for" << endl;
   for (i=0; i<in.GetQueryCount(); i++) {
     out.SetQuerySize(i, in.GetQuerySize(i));
     out.SetQueryName(i, in.GetQueryName(i));
@@ -532,7 +530,7 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
     }      
   }
 
-  cout << "Dynprog'ing... 1" << endl;
+  cout << "Dynprog'ing..." << endl;
 
 
   std::vector<int> firstI, lastI;
@@ -540,7 +538,6 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
   lastI.resize(n, -1);
 
 
-  cout << "Dynprog'ing... 2" << endl;
   for (i=0; i<in.GetMatchCount(); i++) {
     const SingleMatch & m = in.GetMatch(i);    
 
@@ -552,7 +549,6 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
   }
 
 
-  cout << "Dynprog'ing... 3" << endl;
   // Less stupid way of doing this
   for (j=0; j<n; j++) {
     //cout << "Target " << j << " (of " << n << ")" << endl;

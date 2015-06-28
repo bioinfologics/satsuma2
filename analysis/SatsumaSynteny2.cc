@@ -140,7 +140,7 @@ int SyntenyInterpolator::Interpolate(MultiMatches & chained)
 			      chained.GetQuerySize(end.GetQueryID()));
 	  dd.SetPos(yy, xx, 50+i-last, end.IsRC());
 	  chained.AddMatch(dd);
-	  cout << "Adding extra (right): " << xx << " / " << yy << endl;
+	  //cout << "Adding extra (right): " << xx << " / " << yy << endl;
 
 	}
 	
