@@ -32,12 +32,12 @@ void SetValue(argType &T) { mValue = T; mHasValue=true; }
 void SetDefault(argType &T) { mValue = T; mHasDefault = true; }
 void SetDescription(string d) { mDesc = d; }
 
-bool HasDefault() { return mHasDefault; }
-bool HasValue() { return mHasValue; }
+bool HasDefault() const { return mHasDefault; }
+bool HasValue() const { return mHasValue; }
 
-argType GetValue() { return mValue; }
-string GetName() { return mName; }
-string GetDescription() { return mDesc; }
+argType GetValue() const { return mValue; }
+string GetName() const { return mName; }
+string GetDescription() const { return mDesc; }
 
 friend bool operator< (const commandArg<argType> &lhs, 
 		       const commandArg<argType> &rhs)
