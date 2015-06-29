@@ -407,6 +407,16 @@ int main( int argc, char** argv )
     }
     //TODO: ALG: collect targets to fill in the queue
     int targets_to_collect=(wq.pending_pair_count()<targets_queue_size ? targets_queue_size - wq.pending_pair_count() : 0 );
+    if (targets_to_collect>targets_queue_size * .75){
+      targets_queue_size+=threads_per_slave*slave_count;
+      cout<<"MAIN: Increasing queue size to "<<targets_queue_size<<endl;
+      targets_to_collect=(wq.pending_pair_count()<targets_queue_size ? targets_queue_size - wq.pending_pair_count() : 0 );
+    }
+    if (targets_to_collect<targets_queue_size * .50 && targets_queue_size>8*slave_count*threads_per_slave){
+      targets_queue_size-=threads_per_slave*slave_count;
+      cout<<"MAIN: Decreasing queue size to "<<targets_queue_size<<endl;
+      targets_to_collect=(wq.pending_pair_count()<targets_queue_size ? targets_queue_size - wq.pending_pair_count() : 0 );
+    }
     if (!collect_status.matches && !targets_to_collect) {
       cout<< "MAIN: nothing changed, skipping cycle and waiting 3 seconds"<<endl;
       sleep(3);
