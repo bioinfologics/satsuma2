@@ -316,42 +316,51 @@ int main( int argc, char** argv )
   WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_count, threads_per_slave);
   //==================================================================
   //ALG: create filtered seeds
-  if (!bFilter && seedFile == "") {
-    for (long long i=11; i<32; i+=2){
-      seedFile = output + "/kmatch_results.k"+ to_string(i);
-      string cmd;
-      cmd = "echo \"cd " + current_path + ";"+ satsuma2_path + "/KMatch " + sQuery + " " + sTarget;
-      cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1);
-      cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
-      cout << "Running seed pre-filter " << cmd << endl;
-      system(cmd.c_str());
-    }
-    //TODO:wait for the kmatches to finish
-    cout << "Waiting for seed pre-filters..." << endl;
-    seedFile = output + "/kmatch_results.k";
-    int finished=0;
-    while (finished<11){
-      sleep(3);
+  if (!bFilter) {
+    if ( seedFile == "") {
       for (long long i=11; i<32; i+=2){
-        FILE * pProbe = fopen((seedFile+to_string(i)+".finished").c_str(), "r");
-        if (pProbe != NULL) {
-          fclose(pProbe);
-          cout<<"loading results for k="<<i<<endl;
-          wq.results_from_file((seedFile+to_string(i)).c_str());
-          string cmd="rm "+seedFile+to_string(i)+".finished";
-          system(cmd.c_str());
-          finished++;
+        seedFile = output + "/kmatch_results.k"+ to_string(i);
+        string cmd;
+        cmd = "echo \"cd " + current_path + ";"+ satsuma2_path + "/KMatch " + sQuery + " " + sTarget;
+        cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1);
+        cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
+        cout << "Running seed pre-filter " << cmd << endl;
+        system(cmd.c_str());
+      }
+      //TODO:wait for the kmatches to finish
+      cout << "Waiting for seed pre-filters..." << endl;
+      seedFile = output + "/kmatch_results.k";
+      int finished=0;
+      while (finished<11){
+        sleep(3);
+        for (long long i=11; i<32; i+=2){
+          FILE * pProbe = fopen((seedFile+to_string(i)+".finished").c_str(), "r");
+          if (pProbe != NULL) {
+            fclose(pProbe);
+            cout<<"loading results for k="<<i<<endl;
+            wq.results_from_file((seedFile+to_string(i)).c_str());
+            string cmd="rm "+seedFile+to_string(i)+".finished";
+            system(cmd.c_str());
+            finished++;
+          }
         }
       }
+      cout << "Seed pre-filters finished" << endl;
+    } else {
+      cout << "Loading pre-calculated seeds from "<<seedFile<<"*..."<<endl;
+      for (long long i=11; i<32; i+=2){
+        cout<<"loading results for k="<<i<<endl;
+        wq.results_from_file((seedFile+to_string(i)).c_str());
+      }
     }
-    cout << "Seed pre-filters finished" << endl;
   }
+  
   
   cout << "SATSUMA: Launching slaves, date and time: " << GetTimeStatic() << endl;
   wq.setup_queue();//XXX totally wrong to name the slaves count like that!
   //ALG: processing the seeds. Why is this different to just process matches? (besides the filter)
   
-  cout << "SATSUMA: Loading KMATCH results, date and time: " << GetTimeStatic() << endl;
+  cout << "SATSUMA: Processing  KMATCH results, date and time: " << GetTimeStatic() << endl;
   unsigned long int new_matches_count;
   wq.collect_new_matches(matches); //matches.Read(seedFile);
   matches.Sort();

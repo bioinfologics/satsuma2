@@ -187,12 +187,6 @@ void WorkQueue::serve(){
         submit_tasks();
       }
       close(conn_sockfd);
-      /*if (conn_command==TCP_COMMAND_REQUEST_PAIRS){
-        submit_tasks();
-      }
-      else if (conn_command==TCP_COMMAND_SEND_SOLUTIONS){
-        receive_solutions();
-      }*/
     }
     //TODO: housekeeping
     //check for stalled slaves and reassign their work.
@@ -262,7 +256,7 @@ void WorkQueue::start_listener(){
   //TODO spawns a thread to listen on the socket
   port=portno;
   cout<<"Spawning a thread to serve the WorkQueue on port "<<portno<<endl;
-  server_thread=std::thread(&WorkQueue::serve,std::ref(this));
+  server_thread=std::thread(&WorkQueue::serve,this);
 }
 
 void WorkQueue::close_queue(){

@@ -194,9 +194,9 @@ int main( int argc, char** argv )
   }
 
 
-  int allBases = 0;
-  int coveredBases = 0;
-  int depthCov = 0;
+  unsigned long int allBases = 0;
+  unsigned long int coveredBases = 0;
+  unsigned long int depthCov = 0;
 
   for (i=0; i<covered.isize(); i++) {
     qualvector & q = covered[i];

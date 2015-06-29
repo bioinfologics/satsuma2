@@ -407,13 +407,6 @@ int main( int argc, char** argv ){
   cout<< "== launching workers =="<<endl;
 
   std::thread workers[threads];
-  /*for (int wt=0;wt<threads;wt++) {
-    hbxc.push_back(HomologyByXCorr(sQuery,queryChunk,sTarget,targetChunk,topCutoff,topCutoffFast));
-    hbxc[wt].SetMinimumAlignLen(minLen);
-  }
-  for (int wt=0;wt<threads;wt++) {
-    workers[wt]= std::thread(&HomologyByXCorr::work, std::ref(hbxc[wt]));
-  }*/
   /*create_chunks(query_filename,target_filename);*/
   for (int wt=0;wt<threads;wt++) {
     workers[wt]= std::thread(launch_worker);
