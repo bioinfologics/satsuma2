@@ -200,7 +200,17 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
   int64_t match_start=0;
   int64_t q_delta=0, t_delta=1;//Invalid values, just to make sure.
   uint64_t dumped=0;
+  //MULTI-MATCH: keep a list of "started matches" with q_start, t_start,  last-match
   for (uint64_t i=1;i<=kmsize ;i++){//do not check the last element, check it outside!
+    //MULTI-MATCH version:
+    //1) for each match in "current matches":
+    //  a) if current kmer-pair extends, update last-match
+    //  b) if current kmer-pair[0] out of jump range, check (dump) and remove from list
+    //2) If current kmer didnt extend any match,start a new match with it
+
+
+
+
     //TODO: to allow multi-matches just change i-1 for a back-search of the previous link in this match (i.e, go back till position[j] <position-max_jmp and if any point matches, use it to move forward.
     //TODO: to allow for multi-matches the start register needs to change to a vector with some more variables.
     //if match breaks in this element
