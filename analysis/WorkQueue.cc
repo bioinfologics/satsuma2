@@ -263,10 +263,14 @@ void WorkQueue::close_queue(){
   shutdown_status=1;
 }
 
-void WorkQueue::results_from_file(const char * filename){
+void WorkQueue::results_from_file(const char * filename, const svec<SeqChunk> & _queryInfo){
   FILE * rf=fopen(filename,"r");
   t_result r;
   while (fread(&r,sizeof(r),1,rf)==1){
+    if (r.reverse) {//recalculate postion in satsuma format
+      //r.qstart=r.qstart + r.query_size - _queryInfo[r.query_id].GetStart() - queryChunk;
+      r.qstart=r.query_size-r.len-r.qstart;
+    }
     resultsv.push_back(r);
   }
   fclose(rf);
@@ -295,6 +299,7 @@ t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
   //ALG: mutex start
   unsigned long int i;
   t_collect_status status;
+  unsigned long int revcount=0,fwcount=0;
   results_mutex.lock();
   //ALG: update the MultiMatch
   for (i=0;i<resultsv.size();i++){
@@ -317,6 +322,8 @@ t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
       cout<<"ident="<<resultsv[i].ident<<endl;
     }
     matches.AddMatch(m);
+    if (resultsv[i].reverse) revcount++;
+    else fwcount++;
   }
   //ALG: mutex end
   resultsv.clear();
@@ -325,5 +332,6 @@ t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
   if (status.matches>0 and status.slaves==0) status.slaves=1; //XXX: wrong way to resolve race!!!
   slaves_finished_count=0;
   results_mutex.unlock();
+  cout<<"WORKQUEUE: matches collected. FW: "<<fwcount<<"   REV: "<<revcount<<endl;
   return status;
 }

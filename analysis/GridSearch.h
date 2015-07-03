@@ -408,10 +408,10 @@ class GridSearch
 
   
 
+  svec<SeqChunk> m_queryChunks;
  private:
 
   svec<SeqChunk> m_targetChunks;
-  svec<SeqChunk> m_queryChunks;
   int m_size;
 
   svec<GridSequence> m_targetSeq;

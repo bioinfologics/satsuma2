@@ -347,7 +347,7 @@ int main( int argc, char** argv )
           if (pProbe != NULL) {
             fclose(pProbe);
             cout<<"loading results for k="<<i<<endl;
-            wq.results_from_file((seedFile+to_string(i)).c_str());
+            wq.results_from_file((seedFile+to_string(i)).c_str(),grid.m_queryChunks);
             string cmd="rm "+seedFile+to_string(i)+".finished";
             system(cmd.c_str());
             finished++;
@@ -359,7 +359,7 @@ int main( int argc, char** argv )
       cout << "Loading pre-calculated seeds from "<<seedFile<<"*..."<<endl;
       for (long long i=11; i<32; i+=2){
         cout<<"loading results for k="<<i<<endl;
-        wq.results_from_file((seedFile+to_string(i)).c_str());
+        wq.results_from_file((seedFile+to_string(i)).c_str(),grid.m_queryChunks);
       }
     }
   }
@@ -370,7 +370,7 @@ int main( int argc, char** argv )
   //ALG: processing the seeds. Why is this different to just process matches? (besides the filter)
   
   if (old_seedFile != "") {
-    cout<<"Readind old seeds from "<<old_seedFile<<endl;
+    cout<<"Reading old seeds from "<<old_seedFile<<endl;
     matches.Read(old_seedFile);
     matches.Sort();
     matches.Collapse();
@@ -402,6 +402,7 @@ int main( int argc, char** argv )
     cout<<"MAIN: starting iteration "<<main_iteration<<endl;
     t_collect_status collect_status=wq.collect_new_matches(matches);
     cout<<"MAIN: "<<collect_status.matches<<" new matches collected"<<endl;
+    
     //ALG: if new matches
     if (first_pass || collect_status.matches > 0) {
       first_pass=false;
@@ -419,7 +420,7 @@ int main( int argc, char** argv )
       inter.Interpolate(chained); 
       cout << "MAIN: Total matches (interpolated): " << chained.GetMatchCount() << endl;
       cout << "MAIN: Updating grid's Target Weights" << endl;
-      grid.UpdateTargetWeights(chained);
+      grid.UpdateTargetWeights(chained);//Clears and updates weights
     }
     //TODO: ALG: collect targets to fill in the queue
     int targets_to_collect=(wq.pending_pair_count()<targets_queue_size ? targets_queue_size - wq.pending_pair_count() : 0 );
@@ -482,6 +483,9 @@ int main( int argc, char** argv )
   wq.close_queue(); //XXX: TODO: wait till all targets have been processed!
 
   //ALG: write final output
+  cout << "Sorting and collapsing final matches..." << endl;
+  matches.Sort();
+  matches.Collapse();
   cout << "Writing final output!" << endl;
   string finalOut = output + "/xcorr_aligns.final.out"; 
   matches.Write(finalOut);

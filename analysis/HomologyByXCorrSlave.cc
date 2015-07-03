@@ -93,7 +93,7 @@ class HomologyByXCorr
     void send_solutions_to_master();
     std::vector<CCSignal> create_signals(const vecDNAVector & _sequences, unsigned long int _from, unsigned long int _count, bool reverse);
     void align_target(t_pair p);
-    void FilterMatches(int _target_id, int _query_id, const vecSeqMatch & _matches, bool _reverse);
+    void FilterMatches(int _target_id, int _query_id, const DNAVector & _query_seq, const vecSeqMatch & _matches, bool _reverse);
     void work();
 
 
@@ -180,7 +180,7 @@ int HomologyByXCorr::connect_to_master(){
   return sockfd;
 
 }
-void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const vecSeqMatch & _matches, bool _reverse){
+void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const DNAVector & _query_seq, const vecSeqMatch & _matches, bool _reverse){
   int len, tStart, qStart;
   std::vector<t_result> local_results;
   for (int j=0; j<_matches.isize(); j++) {
@@ -194,9 +194,8 @@ void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const vecSeqM
     }else{
       qStart = RCQuery(queryInfo[_query_id].GetStart(), _matches[j].GetStartQuery(), len, queryChunk, cmQuery->GetSize(queryInfo[_query_id].GetID()));
     }
-
     double prob = GetMatchProbability(target[_target_id],
-        query[_query_id],
+        _query_seq,
         _matches[j].GetStartTarget(),
         _matches[j].GetStartQuery(),
         _matches[j].GetLength(),
@@ -207,7 +206,7 @@ void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const vecSeqM
 
     //cout << "Match # " << j << " probability " << 100.* prob << " %" << endl;
     //cout << "Start target: " << tStart << " - " << tStart + len << endl;
-    double ident = PrintMatch(query[_query_id], target[_target_id], _matches[j], true);//XXX: does this really print?
+    double ident = PrintMatch(_query_seq, target[_target_id], _matches[j], true);//XXX: does this really print?
     t_result r;
     r.query_id=queryInfo[_query_id].GetID();
     r.target_id=targetInfo[_target_id].GetID();
@@ -220,6 +219,7 @@ void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const vecSeqM
     r.ident=ident;
     local_results.push_back(r);
   }
+  //cout<<std::this_thread::get_id()<<" inserted matches after filtering: "<<local_results.size()<<endl;
   results_mutex.lock();
   results.insert( results.end(), local_results.begin(), local_results.end() );
   results_mutex.unlock();
@@ -245,12 +245,16 @@ void HomologyByXCorr::Align(
   xc.CrossCorrelate(result, _target_signal, _query_signal);
   matches.clear();
   sa.MatchUp(matches, query[_query_id], target[_target_id], result);
-  FilterMatches(_target_id, _query_id, matches, false);
+  //cout<<std::this_thread::get_id()<<"FW matches before filtering: "<<matches.size()<<endl;
+  FilterMatches(_target_id, _query_id, query[_query_id], matches, false);
 
   xc.CrossCorrelate(revresult, _target_signal, _query_rcsignal);
   revmatches.clear();
-  sa.MatchUp(revmatches, query[_query_id], target[_target_id], revresult);
-  FilterMatches(_target_id, _query_id, revmatches, true);
+  DNAVector rcquery=query[_query_id];
+  rcquery.ReverseComplement();
+  sa.MatchUp(revmatches, rcquery, target[_target_id], revresult);
+  //cout<<std::this_thread::get_id()<<"RC matches before filtering: "<<revmatches.size()<<endl;
+  FilterMatches(_target_id, _query_id, rcquery, revmatches, true);
 
 }
 std::vector<CCSignal> HomologyByXCorr::create_signals( const vecDNAVector & _sequences, unsigned long int _from, unsigned long int _count, bool reverse){

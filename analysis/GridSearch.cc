@@ -15,7 +15,7 @@ inline long long big_random( )
 GridSearch::GridSearch(int size, int blocks)
 {
   m_size = size;
-  
+
   //m_blocks = 24;
   m_blocks = blocks;
 }
@@ -23,7 +23,7 @@ GridSearch::GridSearch(int size, int blocks)
 
 
 void GridSearch::SetUp(const vecDNAVector & target, 
-		       const vecDNAVector & query)
+    const vecDNAVector & query)
 {
   int i, j;
 
@@ -76,76 +76,76 @@ void GridSearch::SetUp(const vecDNAVector & target,
     last = 0;
     for (j=0; j<m_targetChunks.isize(); j++) {
       if (m_targetChunks[j].GetName() == n) {
-      //	m_targetSeq[i].SetBlocks(first, j-1);
-      //	break;
-      //}
-	if (first == -1)
-	  first = j;
-	last = j;
-      }
+        //	m_targetSeq[i].SetBlocks(first, j-1);
+        //	break;
+        //}
+        if (first == -1)
+          first = j;
+      last = j;
     }
-    m_targetSeq[i].SetBlocks(first, last);
-    //j--;
   }
-   
-  j = 0;
+  m_targetSeq[i].SetBlocks(first, last);
+  //j--;
+}
+
+j = 0;
+first = -1;
+last = 0;
+for (i=0; i<m_querySeq.isize(); i++) {
+  const string & n = m_querySeq[i].Name();
   first = -1;
   last = 0;
-  for (i=0; i<m_querySeq.isize(); i++) {
-    const string & n = m_querySeq[i].Name();
-    first = -1;
-    last = 0;
-    for (j=0; j<m_queryChunks.isize(); j++) {
-      if (m_queryChunks[j].GetName() == n) {
-	if (first == -1)
-	  first = j;
-	last = j;
-      }
+  for (j=0; j<m_queryChunks.isize(); j++) {
+    if (m_queryChunks[j].GetName() == n) {
+      if (first == -1)
+        first = j;
+      last = j;
     }
-    m_querySeq[i].SetBlocks(first, last);
-
-    //    for (; j<m_queryChunks.isize(); j++) {
-    //if (m_queryChunks[j].GetName() != n || j+1 == m_queryChunks.isize()) {
-    //m_querySeq[i].SetBlocks(first, j-1);
-    //break;
-    //}
-    //if (first == -1)
-    //first = j;
-    //}
-    //j--;
   }
+  m_querySeq[i].SetBlocks(first, last);
+
+  //    for (; j<m_queryChunks.isize(); j++) {
+  //if (m_queryChunks[j].GetName() != n || j+1 == m_queryChunks.isize()) {
+  //m_querySeq[i].SetBlocks(first, j-1);
+  //break;
+  //}
+  //if (first == -1)
+  //first = j;
+  //}
+  //j--;
+}
 
 
-  m_matrix.Setup(m_targetChunks.isize(), m_queryChunks.isize(), m_blocks, m_blocks);
+m_matrix.Setup(m_targetChunks.isize(), m_queryChunks.isize(), m_blocks, m_blocks);
 
-  
-  m_vertical.resize(m_queryChunks.isize(), 0);
-  m_horizontal.resize(m_targetChunks.isize(), 0);
 
-  m_repTrack.Setup(target.isize(), query.isize());
+m_vertical.resize(m_queryChunks.isize(), 0);
+m_horizontal.resize(m_targetChunks.isize(), 0);
 
-  for (i=0; i<target.isize(); i++)
-    m_repTrack.SetTargetSize(i, target[i].isize());
-  for (i=0; i<query.isize(); i++)
-    m_repTrack.SetQuerySize(i, query[i].isize());
+m_repTrack.Setup(target.isize(), query.isize());
+
+for (i=0; i<target.isize(); i++)
+m_repTrack.SetTargetSize(i, target[i].isize());
+for (i=0; i<query.isize(); i++)
+m_repTrack.SetQuerySize(i, query[i].isize());
 
 }
 
 void GridSearch::SetUsed(int targetID,
-			 int startTarget,
-			 int endTarget,
-			 int queryID,
-			 int startQuery,
-			 int endQuery)
+    int startTarget,
+    int endTarget,
+    int queryID,
+    int startQuery,
+    int endQuery)
 {
   int targetBlock, queryBlock;
   int x, y;
   CoordsToBlocks(targetBlock,
-		 queryBlock,
-		 targetID,
-		 startTarget,
-		 queryID,
-		 startQuery);
+      queryBlock,
+      targetID,
+      startTarget,
+      queryID,
+      startQuery);
 
   m_matrix.BlockByAbsolute(x, y, targetBlock, queryBlock);
 
@@ -153,22 +153,22 @@ void GridSearch::SetUsed(int targetID,
   for (i=x-1; i<=x+1; i++) {
     for (j=y-1; j<=y+1; j++) {
       if (i < 0 || j < 0)
-	continue;
+        continue;
       if (i >= m_matrix.TargetBlocks() || j >= m_matrix.QueryBlocks())
-	continue;
-      
+        continue;
+
       m_matrix.Set(i, j, SEARCH_DONE);
     }
   }
 }
 
 void GridSearch::ConsiderTargets(int targetID,
-				 int startTarget,
-				 int endTarget,
-				 int queryID,
-				 int startQuery,
-				 int endQuery,
-				 double ident)
+    int startTarget,
+    int endTarget,
+    int queryID,
+    int startQuery,
+    int endQuery,
+    double ident)
 {
   int targetBlock, queryBlock;
 
@@ -181,13 +181,13 @@ void GridSearch::ConsiderTargets(int targetID,
   // This is very stupid...
   m_repTrack.SetRepeat(targetID, startTarget, endTarget, queryID, startQuery, endQuery);
 
-  
+
   CoordsToBlocks(targetBlock,
-		 queryBlock,
-		 targetID,
-		 (startTarget + endTarget)/2,
-		 queryID,
-		 (startQuery + endQuery)/2);
+      queryBlock,
+      targetID,
+      (startTarget + endTarget)/2,
+      queryID,
+      (startQuery + endQuery)/2);
 
   //cout << "Mapped to blocks t=" << targetBlock << " q=" << queryBlock << endl;
 
@@ -198,7 +198,7 @@ void GridSearch::ConsiderTargets(int targetID,
 
   //cout << "Grid coords x=" << x << " y=" << y << " (size_x=" << m_matrix.TargetBlocks();
   //cout << " size_y=" << m_matrix.QueryBlocks() << ")" << endl;
-  
+
   //m_matrix.Set(x, y, SEARCH_HIT);
 
 
@@ -209,7 +209,7 @@ void GridSearch::ConsiderTargets(int targetID,
 
   m_vertical[queryBlock] += endTarget - startTarget;
   m_horizontal[targetBlock] += endTarget - startTarget;
-     
+
   int i, j;
   int plus = 0;
   if (m_matrix.Get(x, y) != SEARCH_UNKNOWN)
@@ -270,21 +270,21 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
 
     if (m_allNs[i])
       continue;
-      
+
 
     for (j=i; j<m_horizontal.isize(); j++) {
       if (m_horizontal[j] > 0 || m_allNs[j])
-	break;
+        break;
     }
 
- 
+
     int len = j-i-1;
 
     if (len < 4)
       continue;
 
     lineCount++;
-    
+
 
     if (len >= 4)
       lineCountBig++;
@@ -295,35 +295,35 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
 
     for (int y=0; y<m_vertical.isize(); y++) {
       if (m_vertical[y] > 0)
-	continue;
+        continue;
 
       int skip = 0;
 
       for (j=y; j<m_vertical.isize(); j++) {      
-	if (m_vertical[j] > 0) {
-	  skip++;
-	  if (skip >= skipMax)
-	    break;
-	} else {
-	  skip = 0;
-	}
+        if (m_vertical[j] > 0) {
+          skip++;
+          if (skip >= skipMax)
+            break;
+        } else {
+          skip = 0;
+        }
       }
       int y1 = y; 
       int y2 = j-1;
 
       if (y2-y1 < 2)
-	continue;
+        continue;
 
-      
+
       targets.push_back(GridTarget(x,
-				   x,
-				   y1,
-				   y2,
-				   x, 
-				   y1, 
-				   y2, 
-				   len,
-				   true));
+            x,
+            y1,
+            y2,
+            x, 
+            y1, 
+            y2, 
+            len,
+            true));
 
       y = j;
     }
@@ -336,12 +336,12 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
   Sort(targets);
 
   cout << "Grid search: potential lines to be farmed out: " << lineCount << " big ones: "<< lineCountBig << endl;
- 
+
   if (n < targets.isize()) {
     int lastTarget = targets[n-1].TargetFirst();
     for (i=n; i<targets.isize(); i++) {
       if (targets[i].TargetFirst() != lastTarget) {
-	break;
+        break;
       }
     }
     targets.resize(i);
@@ -359,38 +359,38 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
 
 
 void GridSearch::UpdateTargetWeights(MultiMatches & matches){
-      ClearTargetWeights();
+  ClearTargetWeights();
 
-      int lastY1 = -1;
-      int lastY2 = -1;
-      cout<<"Considering "<<matches.GetMatchCount()<<" matches..."<<endl;
-      for (int i=0; i<matches.GetMatchCount(); i++) {
-        const SingleMatch & m = matches.GetMatch(i);
+  int lastY1 = -1;
+  int lastY2 = -1;
+  cout<<"Considering "<<matches.GetMatchCount()<<" matches..."<<endl;
+  for (int i=0; i<matches.GetMatchCount(); i++) {
+    const SingleMatch & m = matches.GetMatch(i);
 
-        int x1 = m.GetStartTarget();
-        int y1 = m.GetStartQuery();
-        int x2 = m.GetStartTarget() + m.GetLength();
-        int y2 = m.GetStartQuery() + m.GetLength();
+    int x1 = m.GetStartTarget();
+    int y1 = m.GetStartQuery();
+    int x2 = m.GetStartTarget() + m.GetLength();
+    int y2 = m.GetStartQuery() + m.GetLength();
 
-        if (m.IsRC()) {
-          int s = matches.GetQuerySize(m.GetQueryID());
-          int tmp = y1;
-          y1 = s - y2;
-          y2 = s - tmp;
-        }
+    if (m.IsRC()) {
+      int s = matches.GetQuerySize(m.GetQueryID());
+      int tmp = y1;
+      y1 = s - y2;
+      y2 = s - tmp;
+    }
 
-        if (x1 < 0 || x2 < 0 || y1 < 0 || y2 < 0)
-          continue;
-        if (x2 >= matches.GetTargetSize(m.GetTargetID()) ||
-            y1 >= matches.GetQuerySize(m.GetQueryID()) ||
-            y2 >= matches.GetQuerySize(m.GetQueryID())) {
-          continue;
-        }
-        ConsiderTargets(m.GetTargetID(), x1, x2, m.GetQueryID(), y1, y2, m.GetIdentity());
-        lastY1 = y1;
-        lastY2 = y2;
-      }
-      cout<<"Matches considered."<<endl;
+    if (x1 < 0 || x2 < 0 || y1 < 0 || y2 < 0)
+      continue;
+    if (x2 >= matches.GetTargetSize(m.GetTargetID()) ||
+        y1 >= matches.GetQuerySize(m.GetQueryID()) ||
+        y2 >= matches.GetQuerySize(m.GetQueryID())) {
+      continue;
+    }
+    ConsiderTargets(m.GetTargetID(), x1, x2, m.GetQueryID(), y1, y2, m.GetIdentity());
+    lastY1 = y1;
+    lastY2 = y2;
+  }
+  cout<<"Matches considered."<<endl;
 }
 
 
@@ -401,20 +401,20 @@ int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
   for (i=0; i<m_matrix.TargetBlocks(); i++) {
     for (j=0; j<m_matrix.QueryBlocks(); j++) {
       if (m_matrix.Get(i, j) != SEARCH_UNKNOWN)
-	continue;
-      
+        continue;
+
 
       if (m_matrix.GetCount(i, j) == 0)
-	continue;
+        continue;
 
-      
+
       const SearchCoordinates & c = m_matrix.Coordinates(i, j);
-      
+
       targets.push_back(GridTarget(c.TargetFirst(),
-				   c.TargetLast(),
-				   c.QueryFirst(),
-				   c.QueryLast(),
-				   i, j,  m_matrix.GetCount(i, j)));
+            c.TargetLast(),
+            c.QueryFirst(),
+            c.QueryLast(),
+            i, j,  m_matrix.GetCount(i, j)));
     }
   }
 
@@ -455,11 +455,11 @@ int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
 
 
 void GridSearch::CoordsToBlocks(int & targetBlock,
-				int & queryBlock,
-				int target,
-				int startTarget,
-				int query,
-				int startQuery)
+    int & queryBlock,
+    int target,
+    int startTarget,
+    int query,
+    int startQuery)
 {
   //cout << "Mapping t=" << target << " q=" << query << endl;
 
@@ -470,18 +470,18 @@ void GridSearch::CoordsToBlocks(int & targetBlock,
 
   // Stupid way of doing this...
   /*int i;
-  for (i= m_targetSeq[target].First(); i<=m_targetSeq[target].Last(); i++) {
+    for (i= m_targetSeq[target].First(); i<=m_targetSeq[target].Last(); i++) {
     if (startTarget >= m_targetChunks[i].GetStart() && startTarget < m_targetChunks[i].GetStart() + m_size) {
-      targetBlock = i;
-      break;
+    targetBlock = i;
+    break;
     }
+    }
+    for (i= m_querySeq[query].First(); i<=m_querySeq[query].Last(); i++) {
+  //cout << "Search query, i=" << i << endl;
+  if (startQuery >= m_queryChunks[i].GetStart() && startQuery < m_queryChunks[i].GetStart() + m_size) {
+  queryBlock = i;
+  break;
   }
-  for (i= m_querySeq[query].First(); i<=m_querySeq[query].Last(); i++) {
-    //cout << "Search query, i=" << i << endl;
-    if (startQuery >= m_queryChunks[i].GetStart() && startQuery < m_queryChunks[i].GetStart() + m_size) {
-      queryBlock = i;
-      break;
-    }
   }*/
 
   // Query is straight-forward, as blocks don't overlap
@@ -504,7 +504,7 @@ void GridSearch::CoordsToBlocks(int & targetBlock,
 bool GridSearch::GetSelect(SeqChunkSelect & vertical, svec<int> & horizontal, int howMany)
 {
   int i, j;
- 
+
   vertical.Set(m_vertical.isize(), m_horizontal.isize());
 
   double sum = 0.;
@@ -545,8 +545,8 @@ bool GridSearch::GetSelect(SeqChunkSelect & vertical, svec<int> & horizontal, in
       double p = (double)l / 10000;
 
       if (p < prob) {
-	horizontal.push_back(i);
-	m_horizontal[i] = 1;
+        horizontal.push_back(i);
+        m_horizontal[i] = 1;
       }
     }
   }
