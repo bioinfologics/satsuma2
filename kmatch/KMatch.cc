@@ -10,10 +10,11 @@ void timed_log(std::string s){
   std::cout<<"TIME_LOG: "<<ms<<" - "<<s<<std::endl;
 };
 
-KMatch::KMatch(char * _target_filename, char * _query_filename, uint8_t _K){
+KMatch::KMatch(char * _target_filename, char * _query_filename, uint8_t _K, int _max_freq){
   target_filename=_target_filename;
   query_filename=_query_filename;
   K=_K;
+  max_freq=_max_freq;
 };
 
 void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t> & kposv, std::vector<seq_attributes_t> & seqnames){
@@ -24,12 +25,10 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
   std::ifstream fasta(filename);
   seq_attributes_t seq_attr;
   timed_log(" Loading array ");
-  uint64_t max_freq=1;//XXX: make this an argument!!!
   std::pair<uint64_t,bool> ckmer;
   int64_t chr_offset=0;
   uint32_t seq_index=0;
   uint64_t kmer_index=0;
-  //while (!EOF)
   const uint64_t KMER_MASK=( ((uint64_t)1)<<(K*2) )-1;
   const uint64_t KMER_FIRSTOFFSET=(K-1)*2;
   std::cout<<"Loading fasta "<<filename<<" into kmer array"<<std::endl;
@@ -177,7 +176,7 @@ void KMatch::merge_positions(){
           m.t_position=-target_positions[ti+j].position;
         }
         m.reverse=rev;
-        kmatches.push_back(m);
+        kmatches.push_back(m);//XXX: should this be pre-allocated?
       }
     }
   }
@@ -189,6 +188,7 @@ void KMatch::clear_positions(){
   target_positions.clear();
   query_positions.clear();
 }
+
 void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_jump){
   //XXX: allow for multi matches!!
   //watch out: matching positions are 1-based to allow for sign always
@@ -200,13 +200,67 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
   int64_t match_start=0;
   int64_t q_delta=0, t_delta=1;//Invalid values, just to make sure.
   uint64_t dumped=0;
+  std::list<multikmer_match_t> active_matches;
   //MULTI-MATCH: keep a list of "started matches" with q_start, t_start,  last-match
   for (uint64_t i=1;i<=kmsize ;i++){//do not check the last element, check it outside!
     //MULTI-MATCH version:
+    bool used=0;
     //1) for each match in "current matches":
-    //  a) if current kmer-pair extends, update last-match
-    //  b) if current kmer-pair[0] out of jump range, check (dump) and remove from list
+    //std::cout<<"--\nEvaluating kmatch on "<< kmatches[i].q_position <<"->"<< kmatches[i].t_position <<" (r="<<kmatches[i].reverse<<")"<<std::endl;
+    for (auto am=active_matches.begin();am!=active_matches.end();){
+      //std::cout<<" Existing match on "<< am->q_start <<"->"<< am->t_start <<" (r="<<am->reverse<<")"<<std::endl;
+      q_delta=kmatches[i].q_position-am->q_start;
+      t_delta=(am->reverse ? am->t_start - kmatches[i].t_position : kmatches[i].t_position-am->t_start);
+      //std::cout<<" qd="<<q_delta<<" td="<<t_delta<<std::endl;
+      
+      //  b) if current kmer-pair extends, update last-match
+      if (q_delta == t_delta && q_delta-am->length <=max_jump && //check coordinates
+          am->reverse == kmatches[i].reverse ) { //check orientation
+          am->length=q_delta;
+          used=1;
+          //std::cout<<"Match updated!!!"<<std::endl;
+      }
+        
+      //  a) if current kmer-pair[0] out of jump range, check (dump) and remove from list
+      if (q_delta - am->length >max_jump || i==kmsize) {//match has finished!
+        //std::cout<<" Match is past its jump "<<std::endl;
+        if (am->length+K >= min_length ){ //check min_length
+          //std::cout<<" Dumping match (length="<<am->length+K<< ")"<<std::endl;
+          //dump!
+          t_result r;
+          r.query_id=am->q_start/KMATCH_POSITION_CHR_CNST-1;//0-based
+          r.target_id=am->t_start/KMATCH_POSITION_CHR_CNST-1;//0-based
+          r.query_size=query_seqs[r.query_id].length;
+          //XXX:review position and K displacement when reverse, etc
+          r.qstart=am->q_start%KMATCH_POSITION_CHR_CNST-1;//0-based
+          if (am->reverse) {
+            r.tstart=(am->t_start-am->length)%KMATCH_POSITION_CHR_CNST-1;//0-based
+          } else {
+            r.tstart=am->t_start%KMATCH_POSITION_CHR_CNST-1;//0-based
+          }
+          r.len=am->length+K;
+          r.reverse=am->reverse;
+          r.prob=1;
+          r.ident=1;
+          out_file.write((char *) &r,sizeof(r));
+          dumped++;
+        }
+        //delete from matches
+        am=active_matches.erase(am);
+	//if (am!=active_matches.begin()) am--;
+      } else am++;
+    }
     //2) If current kmer didnt extend any match,start a new match with it
+    if (!used){
+      multikmer_match_t mkm;
+      mkm.q_start=kmatches[i].q_position;
+      mkm.t_start=kmatches[i].t_position;
+      mkm.length=0;
+      mkm.reverse=kmatches[i].reverse;
+      active_matches.push_back(mkm);
+      //std::cout<<"NEW match on "<< mkm.q_start <<"->"<<mkm.t_start<<std::endl;
+    }
+    
 
 
 
@@ -214,6 +268,7 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
     //TODO: to allow multi-matches just change i-1 for a back-search of the previous link in this match (i.e, go back till position[j] <position-max_jmp and if any point matches, use it to move forward.
     //TODO: to allow for multi-matches the start register needs to change to a vector with some more variables.
     //if match breaks in this element
+    /*----------------
     if (i<kmsize){
       q_delta=kmatches[i].q_position-kmatches[i-1].q_position;
       t_delta=kmatches[i].t_position-kmatches[i-1].t_position;
@@ -250,18 +305,24 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
       //move match start
       match_start=i;
     }
+  ----------*/
   }
   out_file.close();
   std::cout<<dumped<<" matches dumped"<<std::endl;
 }
 
 int main(int argc, char ** argv){
+  if (argc!=8) {
+    std::cout<<"Usage: "<<argv[0]<<" target.fa query.fa K output.fa min_length jump max_freq"<<std::endl;
+    return -1;
+  }
+  
   if (atoi(argv[3])%2==0) {
     std::cout<<"KMatch only accepts odd K values, please try again"<<std::endl;
     return 1;
   }
   //timed_log(" START ");
-  KMatch kmatch(argv[2],argv[1],atoi(argv[3]));
+  KMatch kmatch(argv[2],argv[1],atoi(argv[3]),atoi(argv[7]));
   //timed_log(" load_positions() ");
   std::thread q(&KMatch::load_query_positions,std::ref(kmatch));
   std::thread t(&KMatch::load_target_positions,std::ref(kmatch));

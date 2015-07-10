@@ -1,6 +1,7 @@
 #ifndef KMATCH_INCLUDED
 #define KMATCH_INCLUDED 1
 #include <vector>
+#include <list>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -35,6 +36,13 @@ typedef struct kmer_match_s {
   }
 } kmer_match_t; // if a kmer is High Frequency, then a (pos, -1) and a (-1, pos) are added. TODO: allow for HF in only one.
 
+typedef struct multikmer_match_s {
+  int64_t q_start;
+  int64_t t_start;
+  bool reverse;
+  int64_t length;
+} multikmer_match_t; 
+
 typedef struct {
   std::string name;
   uint64_t length;
@@ -44,7 +52,7 @@ inline int64_t str_to_kmer(const char * _str); //returns a canonical kmer with s
 
 class KMatch {
   public:
-    KMatch(char * _target_filename, char * _query_filename, uint8_t _K);
+    KMatch(char * _target_filename, char * _query_filename, uint8_t _K, int _max_freq);
     void load_query_positions();
     void load_target_positions();
     void merge_positions();
@@ -54,6 +62,7 @@ class KMatch {
     uint8_t K;
     char * target_filename;
     char * query_filename;
+    int max_freq;
     void kmer_array_from_fasta(char * filename, std::vector<kmer_position_t> & kposv, std::vector<seq_attributes_t> & seqnames);
     
     std::vector<seq_attributes_t> target_seqs, query_seqs;
