@@ -545,7 +545,8 @@ int main( int argc, char** argv )
   cout << "all done!" << endl;
 
 
-
+  cout << "Joining Workqueue thread"<<endl;
+  wq.join();
   cout << "SATSUMA: all done, date and time: " << GetTimeStatic() << endl;
   cout << "all done!" << endl;
 

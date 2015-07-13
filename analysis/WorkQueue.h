@@ -60,6 +60,7 @@ class WorkQueue {
     t_collect_status collect_new_matches(MultiMatches &matches); //updates the multimatches and returns number of new matches
     void close_queue();
     void serve();//spawns a new thread and serves the Queue
+    void join();//joins the server_thread
 
   private:
     void start_listener();

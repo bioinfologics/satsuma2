@@ -220,6 +220,10 @@ void WorkQueue::serve(){
   //ALG: ---Listen Function Ends
 }
 
+void WorkQueue::join(){
+  server_thread.join();
+}
+
 
 void WorkQueue::start_listener(){
   //TODO opens socket
