@@ -176,6 +176,7 @@ int main( int argc, char** argv )
   commandArg<double> cutoffCmmd("-cutoff","signal cutoff", 1.8);
   commandArg<int> minmatchesCmmd("-min_matches","minimum matches per target to keep iterating", 20);
   commandArg<string> seedCmmd("-seed","loads seeds and runs from there (kmatch files prefix)", "");
+  commandArg<int> max_kmatch_freqCmmd("-max_seed_kmer_freq","maximum frequency for kmatch seed kmers", 1);
   commandArg<int> min_seedCmmd("-min_seed_length","minimun length for kmatch seeds (after collapsing)", 24);
   commandArg<string> old_seedCmmd("-old_seed","loads seeds and runs from there (xcorr*data)", "");
   commandArg<int> blockPixelCmmd("-pixel","number of blocks per pixel", 24);
@@ -201,6 +202,7 @@ int main( int argc, char** argv )
   P.registerArg(threadsCmmd);
   P.registerArg(seedCmmd);
   P.registerArg(min_seedCmmd);
+  P.registerArg(max_kmatch_freqCmmd);
   P.registerArg(old_seedCmmd);
   P.registerArg(blockPixelCmmd);
   P.registerArg(filterCmmd);
@@ -213,6 +215,7 @@ int main( int argc, char** argv )
   string output = P.GetStringValueFor(oStringCmmd);
   string seedFile = P.GetStringValueFor(seedCmmd);
   int min_seed_length = P.GetIntValueFor(min_seedCmmd);
+  int max_kmatch_freq = P.GetIntValueFor(max_kmatch_freqCmmd);
   string old_seedFile = P.GetStringValueFor(old_seedCmmd);
   int minLen = P.GetIntValueFor(lIntCmmd);
   int targetChunk = P.GetIntValueFor(tChunkCmmd);
@@ -331,8 +334,8 @@ int main( int argc, char** argv )
         seedFile = output + "/kmatch_results.k"+ to_string(i);
         string cmd;
         cmd = "echo \"cd " + current_path + ";"+ satsuma2_path + "/KMatch " + sQuery + " " + sTarget;
-        cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1);
-        cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2";//,mem=100G";
+        cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1) + " " + to_string((long long)max_kmatch_freq);
+        cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
         cout << "Running seed pre-filter " << cmd << endl;
         system(cmd.c_str());
       }
@@ -410,6 +413,7 @@ int main( int argc, char** argv )
       cout << "MAIN: Running the chaining step..." << endl;
       MultiMatches chained;
       matches.Sort();
+      matches.Collapse();
       if (bDup)
         RunMatchDynProgMult(chained, matches);
       else
