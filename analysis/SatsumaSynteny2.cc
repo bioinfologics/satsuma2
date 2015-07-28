@@ -174,6 +174,7 @@ int main( int argc, char** argv )
   commandArg<bool> refineNotCmmd("-do_refine","refinment steps", false);
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.99999);
   commandArg<double> cutoffCmmd("-cutoff","signal cutoff", 1.8);
+  commandArg<bool> probtableCmmd("-prob_table","approximate match prob using a table lookup in slaves", false);
   commandArg<int> minmatchesCmmd("-min_matches","minimum matches per target to keep iterating", 20);
   commandArg<string> seedCmmd("-seed","loads seeds and runs from there (kmatch files prefix)", "");
   commandArg<int> max_kmatch_freqCmmd("-max_seed_kmer_freq","maximum frequency for kmatch seed kmers", 1);
@@ -196,6 +197,7 @@ int main( int argc, char** argv )
   P.registerArg(refineNotCmmd);
   P.registerArg(probCmmd);
   P.registerArg(cutoffCmmd);
+  P.registerArg(probtableCmmd);
   P.registerArg(minmatchesCmmd);
   P.registerArg(perCmmd);
   P.registerArg(slavesCmmd);
@@ -227,6 +229,7 @@ int main( int argc, char** argv )
   double minProb = P.GetDoubleValueFor(probCmmd);
   bool bNoRef = P.GetBoolValueFor(refineNotCmmd);
   double sigCutoff = P.GetDoubleValueFor(cutoffCmmd);
+  bool probtable=P.GetBoolValueFor(probtableCmmd);
   int min_matches_per_target=P.GetIntValueFor(minmatchesCmmd);
   int blocksPerPixel = P.GetIntValueFor(blockPixelCmmd);
   bool bFilter = P.GetBoolValueFor(filterCmmd);
@@ -322,7 +325,7 @@ int main( int argc, char** argv )
   bool bNoChain = false;
 
 
-  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, slave_count, threads_per_slave);
+  WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, probtable, slave_count, threads_per_slave);
   //==================================================================
   //ALG: create filtered seeds
   if (!bFilter) {

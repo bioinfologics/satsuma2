@@ -6,13 +6,14 @@
 #include "analysis/WorkQueue.h"
 
 
-WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, int _slave_count, int _threads){
+WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, bool _probtable, int _slave_count, int _threads){
   minLen=_minLen;
   queryChunk=_queryChunk;
   query_filename=_sQuery;
   targetChunk=_targetChunk;
   target_filename=_sTarget;
   minProb=_minProb;
+  probTable=_probtable;
   sigCutoff=_sigCutoff;
   slave_count=_slave_count;
   threads=_threads;
@@ -291,7 +292,7 @@ void WorkQueue::setup_queue(){
     cmd << "echo cd $PWD ';";
     cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1 << " -p "<< threads;
     cmd << " -q " << query_filename << " -t " << target_filename;
-    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << "'|qsub -l ncpus=" << threads << " -N SL" << i+1;
+    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << (probTable ? "-prob_table true": "") <<"'|qsub -l ncpus=" << threads << " -N SL" << i+1;
     cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
     system(cmd.str().c_str());
   }

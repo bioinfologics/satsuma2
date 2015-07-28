@@ -12,6 +12,7 @@
 #include "analysis/AlignProbability.h"
 #include "analysis/MatchDynProg.h"
 #include "analysis/WorkQueue.h"
+#include "analysis/ProbTable.h"
 #include "util/mutil.h"
 #include <queue>
 #include <thread>
@@ -38,15 +39,15 @@ std::mutex creation_mutex;
 std::vector<t_result> results;
 std::mutex results_mutex;
 std::mutex chunking_mutex;
-  int minLen;
-  int targetChunk;
-  int queryChunk;
-  double minProb;
+int minLen;
+int targetChunk;
+int queryChunk;
+double minProb;
 
-  double topCutoff;
-  double topCutoffFast;
+double topCutoff;
+double topCutoffFast;
 bool processing_finished=false;
-    string target_filename,query_filename;
+string target_filename,query_filename;
 
 //====== XXX: REALLY????? =======================================
 int RCQuery(int offset, int start, int len, int chunkSize, int qLen) 
@@ -113,6 +114,8 @@ class HomologyByXCorr
     int m_chunk;
     double m_targetSize;
     double m_minProb;
+    bool prob_table;
+    ProbTable probt;
 
     int sockfd;
     string master_hostname;
@@ -140,8 +143,16 @@ void HomologyByXCorr::create_chunks(){
   for (int i=0; i<cmTarget->GetCount(); i++) {
     targetTotal += (double)cmTarget->GetSize(i);
   }
+  if (prob_table) {
+    cout << " Initializing Probability table... "<<endl;
+    probt=ProbTable(targetTotal,cutoff);
+    cout << "Done!!" << endl;
+  }
+
 
 }
+
+
 void HomologyByXCorr::disconnect_from_master(){
   //TODO: should we clear the target-pair queue here?
   close(sockfd);
@@ -194,19 +205,27 @@ void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const DNAVect
     }else{
       qStart = RCQuery(queryInfo[_query_id].GetStart(), _matches[j].GetStartQuery(), len, queryChunk, cmQuery->GetSize(queryInfo[_query_id].GetID()));
     }
-    double prob = GetMatchProbability(target[_target_id],
+    double prob;
+    double ident;
+    if (prob_table){
+      prob=probt.GetMatchProbability( ident, target[_target_id], _query_seq, _matches[j].GetStartTarget(), _matches[j].GetStartQuery(), _matches[j].GetLength());
+    } else {
+      prob = GetMatchProbability(target[_target_id],
         _query_seq,
         _matches[j].GetStartTarget(),
         _matches[j].GetStartQuery(),
         _matches[j].GetLength(),
         targetTotal);
+    }
 
     if (prob < m_minProb)
       continue;
 
+    if (!prob_table)
+      ident = PrintMatch(_query_seq, target[_target_id], _matches[j], true);//XXX: does this really print?
+
     //cout << "Match # " << j << " probability " << 100.* prob << " %" << endl;
     //cout << "Start target: " << tStart << " - " << tStart + len << endl;
-    double ident = PrintMatch(_query_seq, target[_target_id], _matches[j], true);//XXX: does this really print?
     t_result r;
     r.query_id=queryInfo[_query_id].GetID();
     r.target_id=targetInfo[_target_id].GetID();
@@ -239,7 +258,9 @@ void HomologyByXCorr::Align(
   SeqAnalyzer sa;
   int i, j;
   svec<float> result,revresult; 
-
+  if (_fast && prob_table) {
+    cout<< "WARNING: fast cutoff required, but probability table is being used!"<<endl;
+  }
   sa.SetTopCutoff((_fast ? topCutoffFast : topCutoff));
 
   xc.CrossCorrelate(result, _target_signal, _query_signal);
@@ -325,9 +346,9 @@ void HomologyByXCorr::work(){
 }
 
 void launch_worker(){
-    HomologyByXCorr hbxc;
-    cout<<"worker created, now to work!!!"<<endl;
-    hbxc.work();
+  HomologyByXCorr hbxc;
+  cout<<"worker created, now to work!!!"<<endl;
+  hbxc.work();
 }
 
 
@@ -349,6 +370,7 @@ int main( int argc, char** argv ){
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.9999);
   commandArg<double> cutoffCmmd("-cutoff","signal selection cutoff", 1.8);
   commandArg<double> cutoffFastCmmd("-cutoff_fast","signal selection cutoff (fast)", 2.9);
+  commandArg<bool> probtableCmmd("-prob_table","lookup probability in table (faster, less accurate)", false);
 
 
   commandLineParser P(argc,argv);
@@ -366,6 +388,7 @@ int main( int argc, char** argv ){
   P.registerArg(probCmmd);
   P.registerArg(cutoffCmmd);
   P.registerArg(cutoffFastCmmd);
+  P.registerArg(probtableCmmd);
 
   P.parse();
 
@@ -382,6 +405,7 @@ int main( int argc, char** argv ){
 
   topCutoff = P.GetDoubleValueFor(cutoffCmmd);
   topCutoffFast = P.GetDoubleValueFor(cutoffFastCmmd);
+  prob_table = P.GetBoolValueFor(probtableCmmd);
 
   //======= Pre-Loading fasta files  =======
   cout << "Loading query sequence:  " << query_filename << endl;
@@ -399,7 +423,7 @@ int main( int argc, char** argv ){
   cmTarget = new ChunkManager(targetChunk, targetChunk / 4);
   cmTarget->ChunkIt(target, targetInfo, targetRaw, targetNames, 0, 0);
   targetRaw.clear();
-  
+
   //TODO: set total target size and check if needed to create the multi!!!!!!
   targetTotal = 0;
   for (int i=0; i<cmTarget->GetCount(); i++) {
