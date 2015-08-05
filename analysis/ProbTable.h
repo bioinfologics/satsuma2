@@ -5,7 +5,6 @@
 #endif
 
 #include <math.h>
-#include "base/CommandLineParser.h"
 #include "analysis/DNAVector.h"
 
 // For testing 
@@ -29,7 +28,7 @@ class ProbTable
   private:
     int ExpectToIndex(double ident_expect);
 
-    std::vector< std:vector < double > > m_table;
+    std::vector< std::vector < double > > m_table;
 
     double CDF(double x, double m, double s);
     double Sigma(double p, int N);
@@ -37,6 +36,8 @@ class ProbTable
 
     double m_size;
     double m_cutoff;
+    double dna_id_table[128][128];
+    double dna_gc_table[128];
 
 };
 

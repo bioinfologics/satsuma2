@@ -44,8 +44,10 @@ int targetChunk;
 int queryChunk;
 double minProb;
 
+ProbTable probt;
 double topCutoff;
 double topCutoffFast;
+bool prob_table;
 bool processing_finished=false;
 string target_filename,query_filename;
 
@@ -89,7 +91,6 @@ class HomologyByXCorr
 
     void disconnect_from_master();
     int connect_to_master();
-    void create_chunks();
     int get_targets_from_master();
     void send_solutions_to_master();
     std::vector<CCSignal> create_signals(const vecDNAVector & _sequences, unsigned long int _from, unsigned long int _count, bool reverse);
@@ -114,8 +115,6 @@ class HomologyByXCorr
     int m_chunk;
     double m_targetSize;
     double m_minProb;
-    bool prob_table;
-    ProbTable probt;
 
     int sockfd;
     string master_hostname;
@@ -126,32 +125,6 @@ class HomologyByXCorr
 
 
 };
-
-void HomologyByXCorr::create_chunks(){
-  //Loads both the query and the target files into memory
-  cout << " - Creating query chunks..."<<endl;
-  cmQuery = new ChunkManager(queryChunk,0);
-  cmQuery->ChunkIt(query, queryInfo, queryRaw, queryNames, 0, 0);
-
-  cout << " - Creating chunks..."<<endl;
-  cmTarget = new ChunkManager(targetChunk, targetChunk / 4);
-  cmTarget->ChunkIt(target, targetInfo, targetRaw, targetNames, 0, 0);
-  cout << "Done chunking." << endl;
-
-  //TODO: set total target size and check if needed to create the multi!!!!!!
-  targetTotal = 0;
-  for (int i=0; i<cmTarget->GetCount(); i++) {
-    targetTotal += (double)cmTarget->GetSize(i);
-  }
-  if (prob_table) {
-    cout << " Initializing Probability table... "<<endl;
-    probt=ProbTable(targetTotal,cutoff);
-    cout << "Done!!" << endl;
-  }
-
-
-}
-
 
 void HomologyByXCorr::disconnect_from_master(){
   //TODO: should we clear the target-pair queue here?
@@ -209,6 +182,7 @@ void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const DNAVect
     double ident;
     if (prob_table){
       prob=probt.GetMatchProbability( ident, target[_target_id], _query_seq, _matches[j].GetStartTarget(), _matches[j].GetStartQuery(), _matches[j].GetLength());
+      if (prob < m_minProb) continue;
     } else {
       prob = GetMatchProbability(target[_target_id],
         _query_seq,
@@ -216,13 +190,11 @@ void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const DNAVect
         _matches[j].GetStartQuery(),
         _matches[j].GetLength(),
         targetTotal);
+      if (prob < m_minProb) continue;
+      ident = PrintMatch(_query_seq, target[_target_id], _matches[j], true);//XXX: does this really print?
     }
 
-    if (prob < m_minProb)
-      continue;
 
-    if (!prob_table)
-      ident = PrintMatch(_query_seq, target[_target_id], _matches[j], true);//XXX: does this really print?
 
     //cout << "Match # " << j << " probability " << 100.* prob << " %" << endl;
     //cout << "Start target: " << tStart << " - " << tStart + len << endl;
@@ -258,9 +230,9 @@ void HomologyByXCorr::Align(
   SeqAnalyzer sa;
   int i, j;
   svec<float> result,revresult; 
-  if (_fast && prob_table) {
+  /*if (_fast && prob_table) {
     cout<< "WARNING: fast cutoff required, but probability table is being used!"<<endl;
-  }
+  }*/
   sa.SetTopCutoff((_fast ? topCutoffFast : topCutoff));
 
   xc.CrossCorrelate(result, _target_signal, _query_signal);
@@ -430,6 +402,14 @@ int main( int argc, char** argv ){
     targetTotal += (double)cmTarget->GetSize(i);
   }
   cout<<"DONE"<<endl;
+  
+  if (prob_table) {
+    cout << " Initializing Probability table... for size "<< targetTotal<<" and cutoff "<< minProb <<endl;
+    probt=ProbTable(targetTotal,minProb);
+    //cout << " Initializing Probability table... for size "<< targetChunk<<" and cutoff "<< topCutoff <<endl;
+    //probt=ProbTable(targetChunk,topCutoff);
+    cout << "Done!!" << endl;
+  }
 
   //======= Main loop
   cout<< "== launching workers =="<<endl;

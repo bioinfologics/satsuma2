@@ -6,6 +6,10 @@ ProbTable::ProbTable() {
 }
 ProbTable::ProbTable(double targetSize, double cutoff) {
   Setup(targetSize, cutoff);
+  for (unsigned char i=0;i<128;i++){
+    for (unsigned char j=0;j<128;j++) dna_id_table[i][j]=DNA_Equal(i,j);
+    dna_gc_table[i]= DNA_C(i) + DNA_G(i); 
+  }
 }
 
 void ProbTable::Setup(double targetSize, double cutoff) {
@@ -21,45 +25,43 @@ void ProbTable::Setup(double targetSize, double cutoff) {
   //int maxLen = 1024;
   int i, j;
 
-  for (i=1; i<m_table.isize(); i++) {
-    svec< double > & t = m_table[i];    
-    double ident_expect = (double)i/((double)m_table.isize()-1);
+  for (i=1; i<m_table.size(); i++) {
+    std::vector< double > & t = m_table[i];    
+    double ident_expect = (double)i/((double)m_table.size()-1);
+    //cout<<"Probtable ident_expect="<<ident_expect<<endl;
     t.resize(maxLen, 2.);
-    for (j=1; j<maxLen; j++) {
-      for (double ident = 0.001; ident <=1.; ident += 0.001) {
+    double ident;
+    for (j=1; j<maxLen; j++) { //XXX you can do a freaking binary search for the limit!
+      //binary search with 10 digits
+      for (ident = 0.001; ident <=1.; ident += 0.001) {
         double prob = GetMatchProbabilityRaw(j, ident, ident_expect, m_size);
+        //cout<<"GetMatchProbabilityRaw(j="<<j<<", ident="<<ident<<", ident_expect="<<ident_expect<<", m_size="<<m_size<<") = "<<prob<<endl;
         if (prob > m_cutoff) {
           t[j] = ident;
+          //cout<<"ProbTable["<<i<<"]["<<j<<"] = "<<ident<<endl;
           break;
         }
       }   
+      //if (ident >1.) cout<<"ProbTable["<<i<<"]["<<j<<"] = "<<t[j]<<" (defaulting)"<<endl;
     }
   }
 }
 
 bool ProbTable::IsGood(int length, double ident, double ident_expect) {
   int index = ExpectToIndex(ident_expect);
-  svec< double > & t = m_table[index];    
-  if (length >= t.isize())
-    length = t.isize() - 1;
+  std::vector< double > & t = m_table[index];    
+  if (length >= t.size())
+    length = t.size() - 1;
   double cutoff = t[length];
+  //std::cout<<"Cutoff for length "<< length<<" is "<<cutoff<<std::endl;
   if (ident >= cutoff) {
     return true;
   }
   return false;
 }
 
-double ProbTable::GetMatchProbabilityRaw(int length, double ident, double ident_expect, double targetSize);
-
-// Funtion compatible with the old match
-double ProbTable::GetMatchProbability(double & ident,
-    const DNAVector & target, 
-    const DNAVector & query, 
-    int startTarget,
-    int startQuery,
-    int length);
 int ProbTable::ExpectToIndex(double ident_expect) {
-  int index = ident_expect * (m_table.isize()-1);
+  int index = ident_expect * (m_table.size()-1);
   return index;
 }
 
@@ -105,31 +107,25 @@ double ProbTable::GetMatchProbability(double & ident,
   double gcCountQuery = 0;
   double matches = 0;
 
-  int trimLeft = -1;
-  int lastMatch = 0;
-
+  //XXX: optimize this, make sure it can be vectorised.
   for (i=0; i<length; i++) {
-    if (target[i+startTarget] == query[i+startQuery]) {
-      if (trimLeft == -1)
-        trimLeft = i;
-      lastMatch = i;
-    }
-
-    matches += DNA_Equal(target[i+startTarget], query[i+startQuery]);
-
-    gcCountTarget += DNA_C(target[i+startTarget]) + DNA_G(target[i+startTarget]); 
-    gcCountQuery += DNA_C(query[i+startQuery]) +  DNA_G(query[i+startQuery]);
+    matches += dna_id_table[target[i+startTarget]][query[i+startQuery]];
+    gcCountTarget += dna_gc_table[target[i+startTarget]]; 
+    gcCountQuery += dna_gc_table[query[i+startQuery]];
+    //XXX: change this to calculate GC /(gcat) (copes with Ns a lot better).
 
   }
+  //change it to a sum of lookups id_table[s1[start1+i]][s2[start1+i]]
 
   ident = matches/(double)length;
 
   double gc = gcCountQuery;
-
+  //another lookup table?
   double p_match = GCAdjustExpect(gc, length, gcCountTarget/(double)length);
+  //std::cout<<"probtable: p_match = "<<p_match<<"  length = "<<length<<"  ident = "<<ident<<endl;
   bool b = IsGood(length, ident, p_match);
   if (b) {
-    return m_cutoff;
+    return m_cutoff;//Do we want to recalculate probability here? it may not be too expensive after all
   } else {
     return 0.;
   }

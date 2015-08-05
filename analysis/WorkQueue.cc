@@ -292,7 +292,7 @@ void WorkQueue::setup_queue(){
     cmd << "echo cd $PWD ';";
     cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1 << " -p "<< threads;
     cmd << " -q " << query_filename << " -t " << target_filename;
-    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << (probTable ? "-prob_table true": "") <<"'|qsub -l ncpus=" << threads << " -N SL" << i+1;
+    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << (probTable ? " -prob_table true": "") <<"'|qsub -l ncpus=" << threads << " -N SL" << i+1;
     cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
     system(cmd.str().c_str());
   }
