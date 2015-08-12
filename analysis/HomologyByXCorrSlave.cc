@@ -32,6 +32,7 @@ ChunkManager * cmTarget; //XXX: forced to use this as no default init
 vecDNAVector target, query;
 svec<SeqChunk> targetInfo, queryInfo;
 double targetTotal;
+unsigned int debug_max_targets;
 
 std::queue<t_pair> targets;
 std::mutex targets_mutex;
@@ -343,6 +344,7 @@ int main( int argc, char** argv ){
   commandArg<double> cutoffCmmd("-cutoff","signal selection cutoff", 1.8);
   commandArg<double> cutoffFastCmmd("-cutoff_fast","signal selection cutoff (fast)", 2.9);
   commandArg<bool> probtableCmmd("-prob_table","lookup probability in table (faster, less accurate)", false);
+  commandArg<int> debugTargetsCmmd("-debug_targets","number of targets to receive before exiting (for debug purposes mostly, don't use)",0);
 
 
   commandLineParser P(argc,argv);
@@ -361,6 +363,7 @@ int main( int argc, char** argv ){
   P.registerArg(cutoffCmmd);
   P.registerArg(cutoffFastCmmd);
   P.registerArg(probtableCmmd);
+  P.registerArg(debugTargetsCmmd);
 
   P.parse();
 
@@ -378,8 +381,10 @@ int main( int argc, char** argv ){
   topCutoff = P.GetDoubleValueFor(cutoffCmmd);
   topCutoffFast = P.GetDoubleValueFor(cutoffFastCmmd);
   prob_table = P.GetBoolValueFor(probtableCmmd);
+  debug_max_targets = P.GetIntValueFor(debugTargetsCmmd);
 
   //======= Pre-Loading fasta files  =======
+  time_t time_start = time(NULL);
   cout << "Loading query sequence:  " << query_filename << endl;
   queryRaw.Read(query_filename,queryNames);
   cout << " - Creating query chunks..."<<endl;
@@ -402,6 +407,8 @@ int main( int argc, char** argv ){
     targetTotal += (double)cmTarget->GetSize(i);
   }
   cout<<"DONE"<<endl;
+  cout<<"TIME SPENT ON LOADING: "<<(time(NULL) - time_start)<<endl;
+  time_start = time(NULL);
   
   if (prob_table) {
     cout << " Initializing Probability table... for size "<< targetTotal<<" and cutoff "<< minProb <<endl;
@@ -409,6 +416,8 @@ int main( int argc, char** argv ){
     //cout << " Initializing Probability table... for size "<< targetChunk<<" and cutoff "<< topCutoff <<endl;
     //probt=ProbTable(targetChunk,topCutoff);
     cout << "Done!!" << endl;
+    cout<<"TIME SPENT ON CREATING PROBTABLE: "<<(time(NULL) - time_start)<<endl;
+    time_start = time(NULL);
   }
 
   //======= Main loop
@@ -434,7 +443,7 @@ int main( int argc, char** argv ){
   serv_addr.sin_family = AF_INET;
   bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
   serv_addr.sin_port = htons(portno);
-
+  unsigned int total_targets;
   while(!processing_finished){
     //acquire lock on target_blocks
     targets_mutex.lock();
@@ -506,7 +515,9 @@ int main( int argc, char** argv ){
       } else {
         close(sockfd);
       } 
-      if (target_count>=0) cout<<target_count<<" targets added"<<endl;
+      //if (target_count>=0) cout<<target_count<<" targets added"<<endl;
+      total_targets+=target_count;
+      if (debug_max_targets && total_targets>=debug_max_targets) processing_finished=true;
     }
     else {
       targets_mutex.unlock();
@@ -514,6 +525,7 @@ int main( int argc, char** argv ){
     }
   }
   cout<< "== Processing finished, waiting for the slaves to die =="<<endl;
+  cout<<"TIME SPENT WORKING: "<<(time(NULL) - time_start)<<endl;
   for (int wt=0;wt<threads;wt++) {
     workers[wt].join();
   }

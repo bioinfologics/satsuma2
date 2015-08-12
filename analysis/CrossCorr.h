@@ -239,6 +239,8 @@ public:
     return m_score[16*i + j];
   }
 
+  double precalc_scores[128][128];
+
 private:
   void Set(char c, int index) {
     m_index[(int)c] = index;

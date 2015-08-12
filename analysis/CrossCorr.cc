@@ -544,6 +544,13 @@ LookupMatch::LookupMatch() {
       m_score[16 * i + j] = v;
     }
   }
+  for (i=0; i<128; i++) { 
+    for (j=0; j<128; j++) { 
+      double d = DNA_EqualAmb(i,j);
+      int v = (int)(d * (double)m_scale + 0.5);
+      precalc_scores[i][j] = v;
+    }
+  }
 }
 
 
@@ -689,11 +696,13 @@ void SeqAnalyzer::DoOne(vecSeqMatch & out, const DNAVector & query, const DNAVec
     } 
 
     //match += DNA_EqualFast(target[i], query[j]);
-    match += m_lookup.GetScore(target[i], query[j]);
+    //match += m_lookup.GetScore(target[i], query[j]);
+    match += m_lookup.precalc_scores[target[i]][query[j]];
     if (n > m_minLen) {
    
       //match -= DNA_EqualFast(target[i-m_minLen-1], query[j-m_minLen-1]);
-      match -= m_lookup.GetScore(target[i-m_minLen-1], query[j-m_minLen-1]);
+      //match -= m_lookup.GetScore(target[i-m_minLen-1], query[j-m_minLen-1]);
+      match -= m_lookup.precalc_scores[target[i-m_minLen-1]][query[j-m_minLen-1]];
 
 
       if (match > minMatches) {
