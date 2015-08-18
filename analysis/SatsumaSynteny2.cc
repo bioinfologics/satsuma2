@@ -183,6 +183,7 @@ int main( int argc, char** argv )
   commandArg<int> blockPixelCmmd("-pixel","number of blocks per pixel", 24);
   commandArg<bool> filterCmmd("-nofilter","do not pre-filter seeds (slower runtime)", false);
   commandArg<bool> dupCmmd("-dups","allow for duplications in the query sequence", false);
+  commandArg<bool> dumpCycleMatchesCmmd("-dump_cycle_matches","dump matches on each cycle (for debug/testing)", false);
 
 
   commandLineParser P(argc,argv);
@@ -209,6 +210,7 @@ int main( int argc, char** argv )
   P.registerArg(blockPixelCmmd);
   P.registerArg(filterCmmd);
   P.registerArg(dupCmmd);
+  P.registerArg(dumpCycleMatchesCmmd);
 
   P.parse();
 
@@ -234,6 +236,7 @@ int main( int argc, char** argv )
   int blocksPerPixel = P.GetIntValueFor(blockPixelCmmd);
   bool bFilter = P.GetBoolValueFor(filterCmmd);
   bool bDup = P.GetBoolValueFor(dupCmmd);
+  bool bDumpCycleMatches = P.GetBoolValueFor(dumpCycleMatchesCmmd);
   MultiMatches matches;
   
   int i, j;
@@ -347,7 +350,7 @@ int main( int argc, char** argv )
       seedFile = output + "/kmatch_results.k";
       int finished=0;
       while (finished<11){
-        sleep(3);
+        sleep(1);
         for (long long i=11; i<32; i+=2){
           FILE * pProbe = fopen((seedFile+to_string(i)+".finished").c_str(), "r");
           if (pProbe != NULL) {
@@ -395,7 +398,7 @@ int main( int argc, char** argv )
   //MultiMatches workMatches;
   cout << "SATSUMA: Entering main search loop, date and time: " << GetTimeStatic() << endl;
   int targets_queue_size=slave_count*threads_per_slave*8;
-  int main_iteration=0;
+  unsigned int main_iteration=0;
   bool first_pass=true;
   int extra_iterations=10;
   int exit_counter=extra_iterations;
@@ -417,17 +420,27 @@ int main( int argc, char** argv )
       MultiMatches chained;
       matches.Sort();
       matches.Collapse();
+      if (bDumpCycleMatches){
+        string cycle_out = output + "/cycle_" + to_string((unsigned long long) main_iteration) + ".matches"; 
+        cout << "MAIN: dumping cycle matches..." << endl;
+        matches.Write(cycle_out);
+      }
+      cout << "MAIN: DynProg..." << endl;
       if (bDup)
         RunMatchDynProgMult(chained, matches);
       else
         RunMatchDynProg(chained, matches);
       cout << "MAIN: Total matches: " << chained.GetMatchCount() << endl;
+      //TODO:
       matches = chained;
+      cout << "MAIN: Interpolating matches... " << chained.GetMatchCount() << endl;
       SyntenyInterpolator inter;
       inter.Interpolate(chained); 
       cout << "MAIN: Total matches (interpolated): " << chained.GetMatchCount() << endl;
       cout << "MAIN: Updating grid's Target Weights" << endl;
       grid.UpdateTargetWeights(chained);//Clears and updates weights
+      
+      
     }
     //TODO: ALG: collect targets to fill in the queue
     int targets_to_collect=(wq.pending_pair_count()<targets_queue_size ? targets_queue_size - wq.pending_pair_count() : 0 );
@@ -447,7 +460,6 @@ int main( int argc, char** argv )
       main_iteration--;
       continue;
     }
-    sleep(1);//wasting 1 second, we can live with this
     cout << "MAIN: Collecting " << targets_to_collect << " new targets from the grid " << endl;
     svec<GridTarget> newTargets;
     int realTargets = grid.CollectTargets(newTargets, targets_to_collect);
@@ -461,8 +473,9 @@ int main( int argc, char** argv )
     }
 
     //TODO: ALG: check CONVERGENCE condition
-    cout<< "MAIN: STATUS: slaves_processed, new_matches, slave_to_match_relation, targets_needed, targets_collected"<<endl;
-    cout<< "MAIN: STATUS: "<< collect_status.slaves << ", " \
+    cout<< "MAIN: STATUS: iteration, slaves_processed, new_matches, slave_to_match_relation, targets_needed, targets_collected"<<endl;
+    cout<< "MAIN: STATUS: "<< main_iteration << ", " \
+                           << collect_status.slaves << ", " \
                            << collect_status.matches << ", " \
                            << (collect_status.slaves ? ((double) collect_status.matches)/collect_status.slaves : 0 ) << ", " \
                            << targets_to_collect << ", " \
