@@ -17,7 +17,7 @@
 #include <netinet/in.h> 
 #include <sys/socket.h>
 #include "analysis/WorkQueue.h"
-
+#define POSITION_CHR_CNST 10000000000L
 
 class SyntenyInterpolator
 {
@@ -151,6 +151,71 @@ int SyntenyInterpolator::Interpolate(MultiMatches & chained)
   }
   return 0;
 }
+
+typedef struct {
+  uint64_t start;
+  uint64_t end;
+} match_segments;
+
+class TargetCoverageTracker{
+  public:
+    TargetCoverageTracker(){
+      match_blocks= std::shared_ptr<std::vector<match_segments>>(new vector<match_segments>());
+      cout<<"TargetCoverageTracker initialized a match_blocks of size"<<match_blocks->size()<<endl;
+    }
+    std::pair<uint64_t, uint64_t> update_and_report(const MultiMatches & m){
+      //Create a std::shared_ptr<std::vector<match_segments>> from
+      std::shared_ptr<std::vector<match_segments>> new_match_blocks = std::shared_ptr<std::vector<match_segments>>(new vector<match_segments>());
+      new_match_blocks->resize(m.GetMatchCount());
+      for (unsigned long int i=0;i<m.GetMatchCount();i++){
+        (*new_match_blocks)[i].start=m.GetMatch(i).GetTargetID()*POSITION_CHR_CNST+m.GetMatch(i).GetStartTarget();
+        (*new_match_blocks)[i].end=(*new_match_blocks)[i].start+m.GetMatch(i).GetLength();
+      };
+      cout<<"TargetCoverageTracker running with "<<match_blocks->size()<<" old and "<<new_match_blocks->size()<<" new match blocks"<<endl;
+      //Double list comparisson
+      unsigned long int i=0,j=0,lastpoint=0,nextpoint=0, last_status=0;
+      unsigned long int coverage[4]={0,0,0,0};
+      while (i<match_blocks->size() || j<new_match_blocks->size()){
+
+        //find next point after last_point;
+        
+        if (i<match_blocks->size()) nextpoint=(*match_blocks)[i].end;
+        if (j<new_match_blocks->size() && (*new_match_blocks)[j].end > nextpoint) nextpoint=(*new_match_blocks)[j].end;
+
+        if (i<match_blocks->size()){
+          if ((*match_blocks)[i].start < nextpoint && (*match_blocks)[i].start > lastpoint) nextpoint=(*match_blocks)[i].start;
+          else if ((*match_blocks)[i].end < nextpoint && (*match_blocks)[i].end > lastpoint) nextpoint=(*match_blocks)[i].end;
+        }
+        if (j<new_match_blocks->size()){
+          if ((*new_match_blocks)[j].start < nextpoint && (*new_match_blocks)[j].start > lastpoint) nextpoint=(*new_match_blocks)[j].start;
+          else if ((*new_match_blocks)[j].end < nextpoint && (*new_match_blocks)[j].end > lastpoint) nextpoint=(*new_match_blocks)[j].end;
+        }
+
+        //status? (who's covering this?)
+        unsigned long int status=0;
+        if (i<match_blocks->size() && lastpoint>=(*match_blocks)[i].start && nextpoint<=(*match_blocks)[i].end) status +=1;
+        if (j<new_match_blocks->size() && lastpoint>=(*new_match_blocks)[j].start && nextpoint<=(*new_match_blocks)[j].end) status +=2;
+        coverage[status]+=nextpoint-lastpoint;
+        
+        //advance 
+        lastpoint=nextpoint;
+        while (i<match_blocks->size() && lastpoint>=(*match_blocks)[i].end) i++;
+        while (j<new_match_blocks->size() && lastpoint>=(*new_match_blocks)[j].end) j++;
+        last_status=status;
+      }
+      match_blocks=new_match_blocks;
+      return std::pair<uint64_t, uint64_t>(coverage[2],coverage[1]);  
+
+
+
+
+    }
+
+  private:
+    std::shared_ptr<std::vector<match_segments>> match_blocks;
+    
+  
+};
 
 
 
@@ -405,6 +470,7 @@ int main( int argc, char** argv )
   int min_slave_matches=perBlock*min_matches_per_target;//XXX: make this a parameter
   //ALG: main loop
   bool first_match_seen=false;
+  TargetCoverageTracker coverage_tracker;
   while (true) {
     //TODO: ALG: collect matches (get count of tasks and results)
     main_iteration++;
@@ -420,6 +486,11 @@ int main( int argc, char** argv )
       MultiMatches chained;
       matches.Sort();
       matches.Collapse();
+      cout << "MAIN: running coverage tracker" <<endl;
+      std::pair<uint64_t,uint64_t> ctr=coverage_tracker.update_and_report(matches);
+      cout << "MAIN: coverage tracker: +"<<ctr.first<<" -"<<ctr.second <<endl;
+
+
       if (bDumpCycleMatches){
         string cycle_out = output + "/cycle_" + to_string((unsigned long long) main_iteration) + ".matches"; 
         cout << "MAIN: dumping cycle matches..." << endl;
