@@ -167,7 +167,7 @@ class MultiMatches
     m_currVer = 3;
   }
 
-  void SetNames(const svec<string> & qNames, const svec<string> & tNames);
+  void SetNames(const std::vector<string> & qNames, const std::vector<string> & tNames);
 
   const string & GetQueryName(int i) const {return m_queryNames[i];}
   const string & GetTargetName(int i) const {return m_targetNames[i];}
@@ -180,15 +180,15 @@ class MultiMatches
   int GetTargetSize(int i) const {return m_targetSize[i];}
   int GetQuerySize(int i)  const {return m_querySize[i];}
 
-  int GetTargetCount() const {return m_targetSize.isize();}
-  int GetQueryCount()  const {return m_querySize.isize();}
+  int GetTargetCount() const {return m_targetSize.size();}
+  int GetQueryCount()  const {return m_querySize.size();}
 
   void SetCounts(int target, int query);
 
 
   void AddMatch(const SingleMatch & m) {
     //cout << "Added match." << endl;
-    if (m_count >= m_matches.isize()) {
+    if (m_count >= m_matches.size()) {
       m_matches.resize(m_count + 65536 * 2);
     }
     m_matches[m_count] = m;
@@ -208,7 +208,8 @@ class MultiMatches
 
   void Sort() {
     m_matches.resize(m_count);
-    ::Sort(m_matches);
+    //::Sort(m_matches);
+    std::sort(m_matches.begin(),m_matches.end());
   }
 
 
@@ -216,6 +217,8 @@ class MultiMatches
     m_matches.clear();
     m_count = 0;
   }
+
+  void reserve(size_t s){m_matches.reserve(s);};
 
   void Merge(const MultiMatches & m);
 
@@ -234,15 +237,15 @@ class MultiMatches
   void LengthFilter(uint64_t);
 
  private:
-  int Update(svec<string> & names, svec<int> & size, const string & n, int s);
+  int Update(std::vector<string> & names, std::vector<int> & size, const string & n, int s);
 
-  svec<string> m_targetNames;
-  svec<string> m_queryNames;
-  svec<SingleMatch> m_matches;
+  std::vector<string> m_targetNames;
+  std::vector<string> m_queryNames;
+  std::vector<SingleMatch> m_matches;
   int m_count;
 
-  svec<int> m_targetSize;
-  svec<int> m_querySize;
+  std::vector<int> m_targetSize;
+  std::vector<int> m_querySize;
   int m_currVer;
 
 };

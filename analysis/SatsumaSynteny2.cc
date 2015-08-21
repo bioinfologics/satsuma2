@@ -152,9 +152,12 @@ int SyntenyInterpolator::Interpolate(MultiMatches & chained)
   return 0;
 }
 
-typedef struct {
+typedef struct match_segments_s {
   uint64_t start;
   uint64_t end;
+  bool operator <(const match_segments_s & rhs) const{
+        return (start < rhs.start);
+          }
 } match_segments;
 
 class TargetCoverageTracker{
@@ -170,8 +173,9 @@ class TargetCoverageTracker{
       for (unsigned long int i=0;i<m.GetMatchCount();i++){
         (*new_match_blocks)[i].start=m.GetMatch(i).GetTargetID()*POSITION_CHR_CNST+m.GetMatch(i).GetStartTarget();
         (*new_match_blocks)[i].end=(*new_match_blocks)[i].start+m.GetMatch(i).GetLength();
+        //if (i>0 && (*new_match_blocks)[i].start < (*new_match_blocks)[i-1].start) cout<<"ERROR: unsorted Matches into coverageTracker"<<endl;
       };
-      cout<<"TargetCoverageTracker running with "<<match_blocks->size()<<" old and "<<new_match_blocks->size()<<" new match blocks"<<endl;
+      std::sort(new_match_blocks->begin(),new_match_blocks->end());
       //Double list comparisson
       unsigned long int i=0,j=0,lastpoint=0,nextpoint=0, last_status=0;
       unsigned long int coverage[4]={0,0,0,0};
@@ -196,6 +200,14 @@ class TargetCoverageTracker{
         if (i<match_blocks->size() && lastpoint>=(*match_blocks)[i].start && nextpoint<=(*match_blocks)[i].end) status +=1;
         if (j<new_match_blocks->size() && lastpoint>=(*new_match_blocks)[j].start && nextpoint<=(*new_match_blocks)[j].end) status +=2;
         coverage[status]+=nextpoint-lastpoint;
+
+        /*if (j<10){
+          if (i<match_blocks->size()) cout<<"CoverageTracker Detail: OLD Match ["<<(*match_blocks)[i].start<<"-"<<(*match_blocks)[i].end<<"]"<<endl;
+          else cout<<"CoverageTracker Detail: NO OLD Match"<<endl;
+          if (j<new_match_blocks->size()) cout<<"CoverageTracker Detail: NEW Match ["<<(*new_match_blocks)[j].start<<"-"<<(*new_match_blocks)[j].end<<"]"<<endl;
+          else cout<<"CoverageTracker Detail: NO NEW Match"<<endl;
+          cout<<"CoverageTracker Detail: lastpoint="<<lastpoint<<" nextpoint="<<nextpoint<<" status="<<status<<endl;
+        }*/
         
         //advance 
         lastpoint=nextpoint;

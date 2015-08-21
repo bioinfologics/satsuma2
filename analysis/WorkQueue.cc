@@ -270,7 +270,12 @@ void WorkQueue::close_queue(){
 
 void WorkQueue::results_from_file(const char * filename, const svec<SeqChunk> & _queryInfo){
   FILE * rf=fopen(filename,"r");
+  long file_size;
+
+  fseek(fp, 0 , SEEK_END);
+  resultsv.reserve(resultsv.size()+ftell(fp)/sizeof(result_t));
   t_result r;
+  fseek(fp, 0 , SEEK_SET);
   while (fread(&r,sizeof(r),1,rf)==1){
     if (r.reverse) {//recalculate postion in satsuma format
       //r.qstart=r.qstart + r.query_size - _queryInfo[r.query_id].GetStart() - queryChunk;
@@ -306,6 +311,7 @@ t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
   t_collect_status status;
   unsigned long int revcount=0,fwcount=0;
   results_mutex.lock();
+  matches.reserve(matches.GetMatchCount()+resultsv.size());
   //ALG: update the MultiMatch
   for (i=0;i<resultsv.size();i++){
     SingleMatch m;

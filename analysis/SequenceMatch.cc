@@ -70,7 +70,7 @@ void MultiMatches::Merge(const MultiMatches & in)
   int i;
 
   cout << "Start merging." << endl;
-  if (m_targetNames.isize() == 0) {
+  if (m_targetNames.size() == 0) {
     SetCounts(in.GetTargetCount(), in.GetQueryCount());
     for (i=0; i<in.GetTargetCount(); i++) {
       SetTargetSize(i, in.GetTargetSize(i));
@@ -90,14 +90,14 @@ void MultiMatches::Merge(const MultiMatches & in)
     m_matches[i+m_count] = in.GetMatch(i);
   }
 
-  m_count = m_matches.isize();
+  m_count = m_matches.size();
 
 }
 
-int MultiMatches::Update(svec<string> & names, svec<int> & size, const string & n, int s)
+int MultiMatches::Update(std::vector<string> & names, std::vector<int> & size, const string & n, int s)
 {
   int i;
-  for (i=0; i<names.isize(); i++) {
+  for (i=0; i<names.size(); i++) {
     if (names[i] == n) {
       if (s+1 > size[i])
 	size[i] = s+1;
@@ -107,7 +107,7 @@ int MultiMatches::Update(svec<string> & names, svec<int> & size, const string & 
   names.push_back(n);
   size.push_back(s);
 
-  return names.isize()-1;
+  return names.size()-1;
 }
 
 void MultiMatches::Read(const string & file)
@@ -134,7 +134,7 @@ void MultiMatches::ReadSummary(const string & file)
   int tID = -1;
   int qID = -1;
   while (parser.ParseLine()) {
-    if (k >= m_matches.isize())
+    if (k >= m_matches.size())
       m_matches.resize(k + 500000);
     
     const string & t = parser.AsString(0);
@@ -168,10 +168,10 @@ void MultiMatches::ReadSummary(const string & file)
     
   }
   cout << "Total matches: " << k << endl;
-  cout << "Target seq's:  " << m_targetNames.isize() << endl;
-  cout << "Query seq's:   " << m_queryNames.isize() << endl;
+  cout << "Target seq's:  " << m_targetNames.size() << endl;
+  cout << "Query seq's:   " << m_queryNames.size() << endl;
   m_matches.resize(k);
-  m_count = m_matches.isize();
+  m_count = m_matches.size();
 }
 
 void MultiMatches::MergeRead(const string & file)
@@ -201,14 +201,14 @@ void MultiMatches::MergeRead(const string & file)
 
   f.Read(n);
   m_targetNames.resize(n);
-  for (i=0; i<m_targetNames.isize(); i++) {
+  for (i=0; i<m_targetNames.size(); i++) {
     CMString s;
     f.Read(s);
     m_targetNames[i] = (const char*)s;
   }
   f.Read(n);
   m_queryNames.resize(n);
-  for (i=0; i<m_queryNames.isize(); i++) {
+  for (i=0; i<m_queryNames.size(); i++) {
     CMString s;
     f.Read(s);
     m_queryNames[i] = (const char*)s;
@@ -221,9 +221,9 @@ void MultiMatches::MergeRead(const string & file)
   f.Read(len);
   //cout << "Count= " << m_count << endl;
 
-  //int start = m_matches.isize();
+  //int start = m_matches.size();
   m_matches.resize(len + m_count);
-  m_count = m_matches.isize();
+  m_count = m_matches.size();
   
   for (i=start; i<m_count; i++)
     m_matches[i].Read(f, ver);
@@ -232,13 +232,13 @@ void MultiMatches::MergeRead(const string & file)
   m_targetSize.clear();
   m_querySize.clear();
 
-  m_targetSize.resize(m_targetNames.isize(), 0);
-  m_querySize.resize(m_queryNames.isize(), 0);
+  m_targetSize.resize(m_targetNames.size(), 0);
+  m_querySize.resize(m_queryNames.size(), 0);
 
   if (ver > 1) {
-    for (i=0; i<m_targetSize.isize(); i++)
+    for (i=0; i<m_targetSize.size(); i++)
       f.Read(m_targetSize[i]);
-    for (i=0; i<m_querySize.isize(); i++)
+    for (i=0; i<m_querySize.size(); i++)
       f.Read(m_querySize[i]);
   }
 
@@ -263,22 +263,22 @@ void MultiMatches::MergeReadAppend(const string & file)
   
   f.Read(n);
   
-  cout << "Target size=" << m_targetNames.isize() << ", appending " << n << endl;
-  int before = m_targetNames.isize();
+  cout << "Target size=" << m_targetNames.size() << ", appending " << n << endl;
+  int before = m_targetNames.size();
   m_targetNames.resize(n+before);
-  for (i=before; i<m_targetNames.isize(); i++) {
+  for (i=before; i<m_targetNames.size(); i++) {
     CMString s;
     f.Read(s);
     m_targetNames[i] = (const char*)s;
   }
 
   f.Read(n);
-  int curr = m_queryNames.isize();
+  int curr = m_queryNames.size();
   m_queryNames.resize(n);
   cout << "Query size=" << curr << endl;
 
   
-  for (i=0; i<m_queryNames.isize(); i++) {
+  for (i=0; i<m_queryNames.size(); i++) {
     CMString s;
     f.Read(s);
     m_queryNames[i] = (const char*)s;
@@ -287,9 +287,9 @@ void MultiMatches::MergeReadAppend(const string & file)
   f.Read(m_count);
   //cout << "Count= " << m_count << endl;
 
-  int start = m_matches.isize();
-  m_matches.resize(m_matches.isize() + m_count);
-  m_count = m_matches.isize();
+  int start = m_matches.size();
+  m_matches.resize(m_matches.size() + m_count);
+  m_count = m_matches.size();
   
   for (i=start; i<m_count; i++)
     m_matches[i].ReadAppend(f, ver, curr);
@@ -300,13 +300,13 @@ void MultiMatches::MergeReadAppend(const string & file)
 
   //m_querySize.clear();
 
-  m_targetSize.resize(m_targetNames.isize(), 0);
-  m_querySize.resize(m_queryNames.isize(), 0);
+  m_targetSize.resize(m_targetNames.size(), 0);
+  m_querySize.resize(m_queryNames.size(), 0);
 
   if (ver > 1) {
-    for (i=before; i<m_targetSize.isize(); i++)
+    for (i=before; i<m_targetSize.size(); i++)
       f.Read(m_targetSize[i]);
-    for (i=curr; i<m_querySize.isize(); i++)
+    for (i=curr; i<m_querySize.size(); i++)
       f.Read(m_querySize[i]);
   }
 
@@ -325,13 +325,13 @@ void MultiMatches::Write(const string file)
 
   int i;
   
-  f.Write(m_targetNames.isize());
-  for (i=0; i<m_targetNames.isize(); i++) {
+  f.Write(m_targetNames.size());
+  for (i=0; i<m_targetNames.size(); i++) {
     CMString s = m_targetNames[i].c_str();
     f.Write(s);
   }
-  f.Write(m_queryNames.isize());
-  for (i=0; i<m_queryNames.isize(); i++) {
+  f.Write(m_queryNames.size());
+  for (i=0; i<m_queryNames.size(); i++) {
     CMString s = m_queryNames[i].c_str();
     f.Write(s);
   }
@@ -342,9 +342,9 @@ void MultiMatches::Write(const string file)
   for (i=0; i<m_count; i++)
     m_matches[i].Write(f);
 
-  for (i=0; i<m_targetSize.isize(); i++)
+  for (i=0; i<m_targetSize.size(); i++)
     f.Write(m_targetSize[i]);
-  for (i=0; i<m_querySize.isize(); i++)
+  for (i=0; i<m_querySize.size(); i++)
     f.Write(m_querySize[i]);
 
   
@@ -355,15 +355,15 @@ void MultiMatches::Write(const string file)
 
 void MultiMatches::SetTargetSize(int i, int size)
 {
-  if (m_targetSize.isize() == 0)
-    m_targetSize.resize(m_targetNames.isize(), 0);
+  if (m_targetSize.size() == 0)
+    m_targetSize.resize(m_targetNames.size(), 0);
   m_targetSize[i] = size;
 }
 
 void MultiMatches::SetQuerySize(int i, int size)
 {
-  if (m_querySize.isize() == 0)
-    m_querySize.resize(m_queryNames.isize(), 0);
+  if (m_querySize.size() == 0)
+    m_querySize.resize(m_queryNames.size(), 0);
   m_querySize[i] = size;
 }
 
@@ -386,14 +386,14 @@ void MultiMatches::SetQueryName(int i, const string & n)
 }
 
 
-void MultiMatches::SetNames(const svec<string> & qNames, const svec<string> & tNames) {
+void MultiMatches::SetNames(const std::vector<string> & qNames, const std::vector<string> & tNames) {
   m_targetNames.resize(tNames.size());
   m_queryNames.resize(qNames.size());
   int i;
-  for (i=0; i<m_targetNames.isize(); i++) {
+  for (i=0; i<m_targetNames.size(); i++) {
     m_targetNames[i] = tNames[i];
   }
-  for (i=0; i<m_queryNames.isize(); i++) {
+  for (i=0; i<m_queryNames.size(); i++) {
     m_queryNames[i] = qNames[i];
   }
 }
@@ -412,8 +412,8 @@ bool Laps(int a, int b)
 void MultiMatches::Collapse()
 {
   int i;
-  svec<SingleMatch> tmp;
-  tmp.resize(m_matches.isize());
+  std::vector<SingleMatch> tmp;
+  tmp.resize(m_matches.size());
   int k = 0;
 
   SingleMatch n = m_matches[0];
@@ -465,8 +465,8 @@ void MultiMatches::Collapse()
 void MultiMatches::LengthFilter(uint64_t min_length)
 {
   int i;
-  svec<SingleMatch> tmp;
-  tmp.resize(m_matches.isize());
+  std::vector<SingleMatch> tmp;
+  tmp.resize(m_matches.size());
   int k = 0;
 
   cout << "Matches before length filtering: " << m_count << endl;
