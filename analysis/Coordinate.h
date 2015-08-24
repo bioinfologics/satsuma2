@@ -5,7 +5,6 @@
 #include <string>
 #include <sstream>
 #include "base/SVector.h"
-#include "src/AlignmentBlock.h"
 //#include "base/FileParser.h"
 //#include "src/AnnotationQuery/NCList.h"
 
@@ -64,7 +63,6 @@ public:
   string toString(char sep) const;
   string toString_noOrient(char sep) const; 
   void print()const { cout << toString('\t') << endl; }
-  void setFromTarget(const AlignmentBlock & b);
 
 private:
   string chr;    /// Chromosome
