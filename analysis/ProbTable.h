@@ -7,10 +7,6 @@
 #include <math.h>
 #include "analysis/DNAVector.h"
 
-// For testing 
-#include "base/RandomStuff.h"
-
-
 class ProbTable
 {
   public:

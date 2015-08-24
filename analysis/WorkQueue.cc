@@ -271,11 +271,11 @@ void WorkQueue::close_queue(){
 void WorkQueue::results_from_file(const char * filename, const svec<SeqChunk> & _queryInfo){
   FILE * rf=fopen(filename,"r");
   long file_size;
-
-  fseek(fp, 0 , SEEK_END);
-  resultsv.reserve(resultsv.size()+ftell(fp)/sizeof(result_t));
+  //preallocate vector space
+  fseek(rf, 0 , SEEK_END);
+  resultsv.reserve(resultsv.size()+ftell(rf)/sizeof(t_result));
+  fseek(rf, 0 , SEEK_SET);
   t_result r;
-  fseek(fp, 0 , SEEK_SET);
   while (fread(&r,sizeof(r),1,rf)==1){
     if (r.reverse) {//recalculate postion in satsuma format
       //r.qstart=r.qstart + r.query_size - _queryInfo[r.query_id].GetStart() - queryChunk;

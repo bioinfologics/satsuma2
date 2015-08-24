@@ -1,6 +1,5 @@
 #include "util/SysTime.h"
 #include <unistd.h>
-#include <strstream>
 #include <iomanip>
 #include <cstring>
 
@@ -22,12 +21,12 @@ char* GetTimeOfDayInt(char* buffer, int bufferLength)
     gettimeofday( &tv, NULL );
     strftime( buffer, 20,
       "%Y/%m/%d %H:%M:%S", localtime(&tv.tv_sec) );
-    ostrstream ostr;
+    /*&ostrstream ostr;
     ostr << ':' << setfill('0') << setw(6) << tv.tv_usec
       << ends;
     char* sp = ostr.str();
     strcat(buffer, sp);
-    delete [] sp;
+    delete [] sp;*/
   }
   return buffer;
 }
