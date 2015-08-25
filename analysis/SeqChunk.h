@@ -1,7 +1,6 @@
 #ifndef SEQCHUNK_H_
 #define SEQCHUNK_H_
 
-//#include "base/SVector.h"
 #include "analysis/DNAVector.h"
 
 
@@ -18,13 +17,13 @@ class SeqChunkSelect
   void MergeRead(const string & file);
 
 
-  int GetQuerySize() const {return m_query.isize();}
-  int GetTargetSize() const {return m_target.isize();}
+  int GetQuerySize() const {return m_query.size();}
+  int GetTargetSize() const {return m_target.size();}
   int GetQuery(int i) const {return m_query[i];}
   int GetTarget(int i) const {return m_target[i];}
 
-  const svec<int> & Query() const {return m_query;}
-  const svec<int> & Target() const {return m_target;}
+  const std::vector<int> & Query() const {return m_query;}
+  const std::vector<int> & Target() const {return m_target;}
 
   void Set(int querySize, int targetSize) {
     m_query.resize(querySize, 0);
@@ -34,8 +33,8 @@ class SeqChunkSelect
   void SetTarget(int i, int v) {m_target[i] = v;}
 
  private:
-  svec<int> m_query;
-  svec<int> m_target;
+  std::vector<int> m_query;
+  std::vector<int> m_target;
 };
 
 
@@ -83,27 +82,27 @@ public:
     m_overlap = overlap;
   }
 
-  int GetCount() const {return m_lengths.isize();}
+  int GetCount() const {return m_lengths.size();}
   int GetSize(int i) const {return m_lengths[i];}
   
   void ChunkIt(vecDNAVector & out, 
-	       svec<SeqChunk> & chunks, 
+	       std::vector<SeqChunk> & chunks, 
 	       const vecDNAVector & in, 
-	       const svec<string> & names,
+	       const std::vector<string> & names,
 	       int nBlocks = 0,
 	       int myBlock = 0,
 	       double line = -1.0) {
     
-    svec<int> selection;
+    std::vector<int> selection;
     ChunkItSelect(out, chunks, in, names, selection, nBlocks, myBlock, line);
      
   }
   
   void ChunkItSelect(vecDNAVector & out, 
-		     svec<SeqChunk> & chunks, 
+		     std::vector<SeqChunk> & chunks, 
 		     const vecDNAVector & in, 
-		     const svec<string> & names,
-		     const svec<int> & selection,
+		     const std::vector<string> & names,
+		     const std::vector<int> & selection,
 		     int nBlocks = 0,
 		     int myBlock = 0,
 		     double line = -1.0);
@@ -112,7 +111,7 @@ public:
 
 private:
 
-  svec<int> m_lengths;
+  std::vector<int> m_lengths;
   int m_size;
   int m_overlap;
 

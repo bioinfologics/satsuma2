@@ -9,7 +9,6 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include "base/SVector.h"
 #include <set>
 
 using namespace std;

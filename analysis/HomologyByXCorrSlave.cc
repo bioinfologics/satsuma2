@@ -26,11 +26,11 @@
 
 /*FILE input is done once */
 vecDNAVector targetRaw, queryRaw; //holds the sequences
-svec<string> targetNames, queryNames; //holds the sequences names
+std::vector<string> targetNames, queryNames; //holds the sequences names
 ChunkManager * cmQuery; //XXX: forced to use this as no default init
 ChunkManager * cmTarget; //XXX: forced to use this as no default init
 vecDNAVector target, query;
-svec<SeqChunk> targetInfo, queryInfo;
+std::vector<SeqChunk> targetInfo, queryInfo;
 double targetTotal;
 unsigned int debug_max_targets;
 
@@ -104,8 +104,8 @@ class HomologyByXCorr
     int sid;
     int threads;
     int m_minLen;
-    svec<int> m_bestID;
-    svec<double> m_ident;
+    std::vector<int> m_bestID;
+    std::vector<double> m_ident;
     MultiMatches * m_pMulti;
 
     int m_tID;
@@ -168,7 +168,7 @@ int HomologyByXCorr::connect_to_master(){
 void HomologyByXCorr::FilterMatches(int _target_id, int _query_id, const DNAVector & _query_seq, const vecSeqMatch & _matches, bool _reverse){
   int len, tStart, qStart;
   std::vector<t_result> local_results;
-  for (int j=0; j<_matches.isize(); j++) {
+  for (int j=0; j<_matches.size(); j++) {
     if (_matches[j].GetLength() < m_minLen)
       continue;
 
@@ -230,7 +230,7 @@ void HomologyByXCorr::Align(
   vecSeqMatch matches,revmatches;
   SeqAnalyzer sa;
   int i, j;
-  svec<float> result,revresult; 
+  std::vector<float> result,revresult; 
   /*if (_fast && prob_table) {
     cout<< "WARNING: fast cutoff required, but probability table is being used!"<<endl;
   }*/

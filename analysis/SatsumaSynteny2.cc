@@ -383,20 +383,20 @@ int main( int argc, char** argv )
   grid.SetUp(target, query);
   
   cout << "Initializing multimatches..." << endl;
-  svec<string> queryNames, targetNames;
+  std::vector<string> queryNames, targetNames;
 
-  for (i=0; i<target.isize(); i++)
+  for (i=0; i<target.size(); i++)
     targetNames.push_back(target.NameClean(i));
-  for (i=0; i<query.isize(); i++)
+  for (i=0; i<query.size(); i++)
     queryNames.push_back(query.NameClean(i));
   matches.SetNames(queryNames, targetNames);
 
 
-  for (i=0; i<target.isize(); i++) {
-    matches.SetTargetSize(i, target[i].isize());
+  for (i=0; i<target.size(); i++) {
+    matches.SetTargetSize(i, target[i].size());
   }
-  for (i=0; i<query.isize(); i++)
-    matches.SetQuerySize(i, query[i].isize());
+  for (i=0; i<query.size(); i++)
+    matches.SetQuerySize(i, query[i].size());
   cout << "Done." << endl;
   target.clear();
   query.clear();
@@ -408,6 +408,7 @@ int main( int argc, char** argv )
   WorkQueue wq(minLen, sQuery, queryChunk, sTarget, targetChunk, minProb, sigCutoff, probtable, slave_count, threads_per_slave);
   //==================================================================
   //ALG: create filtered seeds
+  cout << "SATSUMA: Acquiring seeds, date and time: " << GetTimeStatic() << endl;
   if (!bFilter) {
     if (old_seedFile != "") {
       cout<<"KMATCH not run because old seeds passed on."<<endl;
@@ -544,10 +545,10 @@ int main( int argc, char** argv )
       continue;
     }
     cout << "MAIN: Collecting " << targets_to_collect << " new targets from the grid " << endl;
-    svec<GridTarget> newTargets;
+    std::vector<GridTarget> newTargets;
     int realTargets = grid.CollectTargets(newTargets, targets_to_collect);
-    cout << "MAIN: Targets retrieved: " << newTargets.isize() << endl;
-    for (i=0; i<newTargets.isize(); i++) {
+    cout << "MAIN: Targets retrieved: " << newTargets.size() << endl;
+    for (i=0; i<newTargets.size(); i++) {
         wq.add_pair(newTargets[i].TargetFirst(),
             newTargets[i].TargetLast(),
             newTargets[i].QueryFirst(),
@@ -562,7 +563,7 @@ int main( int argc, char** argv )
                            << collect_status.matches << ", " \
                            << (collect_status.slaves ? ((double) collect_status.matches)/collect_status.slaves : 0 ) << ", " \
                            << targets_to_collect << ", " \
-                           << newTargets.isize() << ", " << GetTimeStatic() << endl;
+                           << newTargets.size() << ", " << GetTimeStatic() << endl;
     if (first_match_seen==false && collect_status.matches) {
       first_match_seen=true;
     }

@@ -29,26 +29,26 @@ void GridSearch::SetUp(const vecDNAVector & target,
 
   ChunkManager tChunk(m_size, m_size/4);
   ChunkManager qChunk(m_size, 0);
-  m_targetSeq.resize(target.isize());
-  m_querySeq.resize(query.isize());
+  m_targetSeq.resize(target.size());
+  m_querySeq.resize(query.size());
 
 
   // Target first
-  svec<string> names;
-  names.resize(target.isize());
-  for (i=0; i<target.isize(); i++) {
+  std::vector<string> names;
+  names.resize(target.size());
+  for (i=0; i<target.size(); i++) {
     const char * p = target.Name(i).c_str();
     names[i] = &p[1];
-    m_targetSeq[i].SetName(names[i], target[i].isize());
+    m_targetSeq[i].SetName(names[i], target[i].size());
   }
 
   vecDNAVector tmp;
   tChunk.ChunkIt(tmp, m_targetChunks, target, names);
-  m_allNs.resize(tmp.isize(), false);
+  m_allNs.resize(tmp.size(), false);
   // Remember where the bad chunks are!!
 
-  for (i=0; i<tmp.isize(); i++) {
-    if (tmp[i].isize() == 0) {
+  for (i=0; i<tmp.size(); i++) {
+    if (tmp[i].size() == 0) {
       //cout << "Dismissing, all N's" << endl;
       m_allNs[i] = true;
     }
@@ -56,11 +56,11 @@ void GridSearch::SetUp(const vecDNAVector & target,
 
 
   // Query
-  names.resize(query.isize());
-  for (i=0; i<query.isize(); i++) {
+  names.resize(query.size());
+  for (i=0; i<query.size(); i++) {
     const char * p = query.Name(i).c_str();
     names[i] = &p[1];
-    m_querySeq[i].SetName(names[i], query[i].isize());
+    m_querySeq[i].SetName(names[i], query[i].size());
   }
 
   qChunk.ChunkIt(tmp, m_queryChunks, query, names);
@@ -70,11 +70,11 @@ void GridSearch::SetUp(const vecDNAVector & target,
   j = 0;
   int first = -1;
   int last = 0;
-  for (i=0; i<m_targetSeq.isize(); i++) {
+  for (i=0; i<m_targetSeq.size(); i++) {
     const string & n = m_targetSeq[i].Name();
     first = -1;
     last = 0;
-    for (j=0; j<m_targetChunks.isize(); j++) {
+    for (j=0; j<m_targetChunks.size(); j++) {
       if (m_targetChunks[j].GetName() == n) {
         //	m_targetSeq[i].SetBlocks(first, j-1);
         //	break;
@@ -91,11 +91,11 @@ void GridSearch::SetUp(const vecDNAVector & target,
 j = 0;
 first = -1;
 last = 0;
-for (i=0; i<m_querySeq.isize(); i++) {
+for (i=0; i<m_querySeq.size(); i++) {
   const string & n = m_querySeq[i].Name();
   first = -1;
   last = 0;
-  for (j=0; j<m_queryChunks.isize(); j++) {
+  for (j=0; j<m_queryChunks.size(); j++) {
     if (m_queryChunks[j].GetName() == n) {
       if (first == -1)
         first = j;
@@ -104,8 +104,8 @@ for (i=0; i<m_querySeq.isize(); i++) {
   }
   m_querySeq[i].SetBlocks(first, last);
 
-  //    for (; j<m_queryChunks.isize(); j++) {
-  //if (m_queryChunks[j].GetName() != n || j+1 == m_queryChunks.isize()) {
+  //    for (; j<m_queryChunks.size(); j++) {
+  //if (m_queryChunks[j].GetName() != n || j+1 == m_queryChunks.size()) {
   //m_querySeq[i].SetBlocks(first, j-1);
   //break;
   //}
@@ -116,18 +116,18 @@ for (i=0; i<m_querySeq.isize(); i++) {
 }
 
 
-m_matrix.Setup(m_targetChunks.isize(), m_queryChunks.isize(), m_blocks, m_blocks);
+m_matrix.Setup(m_targetChunks.size(), m_queryChunks.size(), m_blocks, m_blocks);
 
 
-m_vertical.resize(m_queryChunks.isize(), 0);
-m_horizontal.resize(m_targetChunks.isize(), 0);
+m_vertical.resize(m_queryChunks.size(), 0);
+m_horizontal.resize(m_targetChunks.size(), 0);
 
-m_repTrack.Setup(target.isize(), query.isize());
+m_repTrack.Setup(target.size(), query.size());
 
-for (i=0; i<target.isize(); i++)
-m_repTrack.SetTargetSize(i, target[i].isize());
-for (i=0; i<query.isize(); i++)
-m_repTrack.SetQuerySize(i, query[i].isize());
+for (i=0; i<target.size(); i++)
+m_repTrack.SetTargetSize(i, target[i].size());
+for (i=0; i<query.size(); i++)
+m_repTrack.SetQuerySize(i, query[i].size());
 
 }
 
@@ -232,20 +232,20 @@ void GridSearch::ConsiderTargets(int targetID,
 }
 
 
-void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
+void GridSearch::CollectSeeds(std::vector<GridTarget> & targetsOut, int n)
 {
   if (n == 0)
     return;
 
   cout << "Looking for additional seeds" << endl;
 
-  svec<GridTarget> targets;
+  std::vector<GridTarget> targets;
 
   int i;
 
   double sum = 0.;
   double num = 0.;
-  for (i=0; i<m_vertical.isize(); i++) {
+  for (i=0; i<m_vertical.size(); i++) {
     if (m_vertical[i] > 0) {
       sum += (double)m_vertical[i];
       num += 1.;
@@ -257,14 +257,14 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
 
   int skipMax = 16;
 
-  //cout << "Vertical size: " << m_vertical.isize() << endl;
+  //cout << "Vertical size: " << m_vertical.size() << endl;
 
   int j;
 
   int lineCount = 0;
   int lineCountBig = 0;
 
-  for (i=0; i<m_horizontal.isize(); i++) {
+  for (i=0; i<m_horizontal.size(); i++) {
     if (m_horizontal[i] > 0)
       continue;
 
@@ -272,7 +272,7 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
       continue;
 
 
-    for (j=i; j<m_horizontal.isize(); j++) {
+    for (j=i; j<m_horizontal.size(); j++) {
       if (m_horizontal[j] > 0 || m_allNs[j])
         break;
     }
@@ -293,13 +293,13 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
 
     i = j;
 
-    for (int y=0; y<m_vertical.isize(); y++) {
+    for (int y=0; y<m_vertical.size(); y++) {
       if (m_vertical[y] > 0)
         continue;
 
       int skip = 0;
 
-      for (j=y; j<m_vertical.isize(); j++) {      
+      for (j=y; j<m_vertical.size(); j++) {      
         if (m_vertical[j] > 0) {
           skip++;
           if (skip >= skipMax)
@@ -331,15 +331,15 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
 
 
 
-  //cout << "Potential targets: " << targets.isize() << endl;
+  //cout << "Potential targets: " << targets.size() << endl;
 
-  Sort(targets);
+  std::sort(targets.begin(),targets.end());
 
   cout << "Grid search: potential lines to be farmed out: " << lineCount << " big ones: "<< lineCountBig << endl;
 
-  if (n < targets.isize()) {
+  if (n < targets.size()) {
     int lastTarget = targets[n-1].TargetFirst();
-    for (i=n; i<targets.isize(); i++) {
+    for (i=n; i<targets.size(); i++) {
       if (targets[i].TargetFirst() != lastTarget) {
         break;
       }
@@ -348,7 +348,7 @@ void GridSearch::CollectSeeds(svec<GridTarget> & targetsOut, int n)
     cout << "Requested: " << n << " retrieved: " << i << endl;
   }
 
-  for (i=0; i<targets.isize(); i++) {
+  for (i=0; i<targets.size(); i++) {
     for (j=targets[i].TargetFirst(); j<=targets[i].TargetLast(); j++)
       m_horizontal[j] = 1;
     targetsOut.push_back(targets[i]);
@@ -394,7 +394,7 @@ void GridSearch::UpdateTargetWeights(MultiMatches & matches){
 }
 
 
-int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
+int GridSearch::CollectTargets(std::vector<GridTarget> & targets, int n)
 {
   int i, j;
 
@@ -419,18 +419,18 @@ int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
   }
 
 
-  Sort(targets);
+  std::sort(targets.begin(),targets.end());
 
-  cout << "Potential targets: " << targets.isize() << endl;
+  cout << "Potential targets: " << targets.size() << endl;
 
-  int pTar = targets.isize();
+  int pTar = targets.size();
 
-  if (n < targets.isize()) {
+  if (n < targets.size()) {
     cout << "Downsize to " << n << endl;
     targets.resize(n);
   }
 
-  for (i=0; i<targets.isize(); i++) {
+  for (i=0; i<targets.size(); i++) {
     m_matrix.Set(targets[i].X(), targets[i].Y(), SEARCH_SUBMITTED);
     if (targets[i].IsFast())
       cout << "ERROR: Target is FAST!" << endl;
@@ -440,12 +440,12 @@ int GridSearch::CollectTargets(svec<GridTarget> & targets, int n)
     //cout << targets[i].QueryFirst() << "-" << targets[i].QueryLast() << "]" << endl;
   }
   //XXX: SEED targets disabled!
-  if (targets.isize() < n) {
+  if (targets.size() < n) {
     cout << "Adding in SEED targets..." << endl;
-    CollectSeeds(targets, n-targets.isize());
+    CollectSeeds(targets, n-targets.size());
   }
 
-  //for (i=0; i<targets.isize(); i++) {
+  //for (i=0; i<targets.size(); i++) {
   //  if (targets[i].IsFast())
   //    cout << "ERROR(2): Target is FAST!" << endl;
   //}
@@ -501,15 +501,15 @@ void GridSearch::CoordsToBlocks(int & targetBlock,
   //cout << "done!" << endl;
 }
 
-bool GridSearch::GetSelect(SeqChunkSelect & vertical, svec<int> & horizontal, int howMany)
+bool GridSearch::GetSelect(SeqChunkSelect & vertical, std::vector<int> & horizontal, int howMany)
 {
   int i, j;
 
-  vertical.Set(m_vertical.isize(), m_horizontal.isize());
+  vertical.Set(m_vertical.size(), m_horizontal.size());
 
   double sum = 0.;
   double n = 0.;
-  for (i=0; i<m_vertical.isize(); i++) {
+  for (i=0; i<m_vertical.size(); i++) {
     if (m_vertical[i] > 0) {
       sum += (double)m_vertical[i];
       n += 1.;
@@ -521,17 +521,17 @@ bool GridSearch::GetSelect(SeqChunkSelect & vertical, svec<int> & horizontal, in
   double thresh = sum * 0.25;
 
   int count = 0;
-  for (i=0; i<m_vertical.isize(); i++) {
+  for (i=0; i<m_vertical.size(); i++) {
     if ((double)m_vertical[i] < thresh) {
       vertical.SetQuery(i, 1);
       count++;
     }
   }
 
-  cout << count << " chunks out of " << m_vertical.isize() << " are free." << endl;
+  cout << count << " chunks out of " << m_vertical.size() << " are free." << endl;
 
   count = 0;
-  for (i=0; i<m_horizontal.isize(); i++) {
+  for (i=0; i<m_horizontal.size(); i++) {
     if (m_horizontal[i] == 0) 
       count++;
   }
@@ -539,7 +539,7 @@ bool GridSearch::GetSelect(SeqChunkSelect & vertical, svec<int> & horizontal, in
   double prob = (double)howMany / (double)count;
 
   count = 0;
-  for (i=0; i<m_horizontal.isize(); i++) {
+  for (i=0; i<m_horizontal.size(); i++) {
     if (m_horizontal[i] == 0) {
       long long l = big_random( ) % 10000;
       double p = (double)l / 10000;
@@ -551,9 +551,9 @@ bool GridSearch::GetSelect(SeqChunkSelect & vertical, svec<int> & horizontal, in
     }
   }
 
-  cout << "Selected " << horizontal.isize() << " horizontal regions" << endl;
+  cout << "Selected " << horizontal.size() << " horizontal regions" << endl;
 
-  if (horizontal.isize() > 0)
+  if (horizontal.size() > 0)
     return true;
   else
     return false;

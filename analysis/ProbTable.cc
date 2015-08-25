@@ -31,7 +31,15 @@ void ProbTable::Setup(double targetSize, double cutoff) {
     //cout<<"Probtable ident_expect="<<ident_expect<<endl;
     t.resize(maxLen, 2.);
     double ident;
+    double min,max,mid,prob;
     for (j=1; j<maxLen; j++) { //XXX you can do a freaking binary search for the limit!
+      for (min=0,max=1;max-min>0.00000001;){
+        mid=(max+min)/2.0;
+        if (GetMatchProbabilityRaw(j, mid, ident_expect, m_size))max=mid;
+        else min=mid;
+      }
+      t[j]=(max+min)/2.0;
+    /*
       //binary search with 10 digits
       for (ident = 0.001; ident <=1.; ident += 0.001) {
         double prob = GetMatchProbabilityRaw(j, ident, ident_expect, m_size);
@@ -42,7 +50,7 @@ void ProbTable::Setup(double targetSize, double cutoff) {
           break;
         }
       }   
-      //if (ident >1.) cout<<"ProbTable["<<i<<"]["<<j<<"] = "<<t[j]<<" (defaulting)"<<endl;
+      //if (ident >1.) cout<<"ProbTable["<<i<<"]["<<j<<"] = "<<t[j]<<" (defaulting)"<<endl;*/
     }
   }
 }

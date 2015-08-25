@@ -1,7 +1,6 @@
 #ifndef _CROSSCORR_H_
 #define _CROSSCORR_H_
 
-//#include "base/SVector.h"
 #include "extern/RealFFT/FFTReal.h"
 #include "analysis/DNAVector.h"
 
@@ -24,7 +23,7 @@ class CCSignal
 
 
   virtual int GetCount() const {return 4;}
-  virtual const svec<float> & Get(int i) const {
+  virtual const std::vector<float> & Get(int i) const {
     switch(i) {
     case 0:
       return m_A;
@@ -45,27 +44,27 @@ class CCSignal
 
 
  protected:
-  svec<float> & A() {return m_A;};
-  svec<float> & C() {return m_C;};
-  svec<float> & G() {return m_G;};
-  svec<float> & T() {return m_T;};
+  std::vector<float> & A() {return m_A;};
+  std::vector<float> & C() {return m_C;};
+  std::vector<float> & G() {return m_G;};
+  std::vector<float> & T() {return m_T;};
 
-  const svec<float> & GetA() const {return m_A;};
-  const svec<float> & GetC() const {return m_C;};
-  const svec<float> & GetG() const {return m_G;};
-  const svec<float> & GetT() const {return m_T;};
+  const std::vector<float> & GetA() const {return m_A;};
+  const std::vector<float> & GetC() const {return m_C;};
+  const std::vector<float> & GetG() const {return m_G;};
+  const std::vector<float> & GetT() const {return m_T;};
   
 
 
-  void SeqToPCM(svec<float> & out, const DNAVector & in, char nuke); 
+  void SeqToPCM(std::vector<float> & out, const DNAVector & in, char nuke); 
   void ComputeEntropy(const DNAVector & in);
 
-  svec<float> m_A;
-  svec<float> m_C;
-  svec<float> m_G;
-  svec<float> m_T;
+  std::vector<float> m_A;
+  std::vector<float> m_C;
+  std::vector<float> m_G;
+  std::vector<float> m_T;
 
-  svec<float> m_entropy;
+  std::vector<float> m_entropy;
   int m_points;
 
 
@@ -77,8 +76,8 @@ inline double CCScore(const CCSignal & a, const CCSignal & b, int apos, int bpos
   int i;
   double sum = 0;
   for (i=0; i<a.GetCount(); i++) {
-    const svec<float> & af = a.Get(i);
-    const svec<float> & bf = b.Get(i);
+    const std::vector<float> & af = a.Get(i);
+    const std::vector<float> & bf = b.Get(i);
   
     double one = af[apos];
     double two = bf[bpos];
@@ -92,7 +91,7 @@ inline double CCScore(const CCSignal & a, const CCSignal & b, int apos, int bpos
   return sum;
 }
 
-typedef svec<float> vecFloat;
+typedef std::vector<float> vecFloat;
 
 class CCSignalProtein : public CCSignal
 {
@@ -107,7 +106,7 @@ class CCSignalProtein : public CCSignal
   virtual void SetSize(int n);
 
   virtual int GetCount() const {return 21;}
-  virtual const svec<float> & Get(int i) const {
+  virtual const std::vector<float> & Get(int i) const {
     return m_aa[i];
   }
 
@@ -129,7 +128,7 @@ class CCSignalWithCodons : public CCSignal
   virtual void SetSize(int n);
 
   virtual int GetCount() const {return 4 + 21;}
-  virtual const svec<float> & Get(int i) const {
+  virtual const std::vector<float> & Get(int i) const {
     if (i < 4)
       return CCSignal::Get(i);
     return m_aa[i-4];
@@ -149,11 +148,11 @@ class CrossCorrelation
  public:
   CrossCorrelation();
   ~CrossCorrelation();
-  void CrossCorrelate(svec<float> & out, const CCSignal & one, const CCSignal & two);
+  void CrossCorrelate(std::vector<float> & out, const CCSignal & one, const CCSignal & two);
   
   void AutoCorrelate(vector<float> &out, vector<float> &in);
 
-  void DoOne(svec<float> & o, const svec<float> & in1, const svec<float> & in2);
+  void DoOne(std::vector<float> & o, const std::vector<float> & in1, const std::vector<float> & in2);
 
  private:
   FFTReal<float> * m_pFFT;
@@ -207,21 +206,20 @@ class vecSeqMatch
   void clear() {m_len = 0;}
 
   void push_back(const SeqMatch & m) {
-    if (m_len >= m_data.isize())
+    if (m_len >= m_data.size())
       m_data.resize(m_len + 4096);
     m_data[m_len] = m;
     m_len++;
   }
 
   int size() const {return m_len;}
-  int isize() const {return m_len;}
 
   SeqMatch & operator[] (int i) {return m_data[i];}
   const SeqMatch & operator[](int i) const {return m_data[i];}
 
 
  private:
-  svec<SeqMatch> m_data;
+  std::vector<SeqMatch> m_data;
   int m_len;
 };
 
@@ -260,9 +258,9 @@ class SeqAnalyzer
 {
  public:
   SeqAnalyzer();
-  void MatchUp(vecSeqMatch & out, const DNAVector & query, const DNAVector & target, svec<float> & xc);
+  void MatchUp(vecSeqMatch & out, const DNAVector & query, const DNAVector & target, std::vector<float> & xc);
 
-  void MatchUp(vecSeqMatch & out, const CCSignal & query, const CCSignal & target, svec<float> & xc);
+  void MatchUp(vecSeqMatch & out, const CCSignal & query, const CCSignal & target, std::vector<float> & xc);
 
   void SetTopCutoff(double c) {
     m_topCutoff = c;
@@ -273,8 +271,8 @@ class SeqAnalyzer
 
 
  private:
-  int FindBest(svec<float> & cx);
-  int FindTop(svec<int> & top, svec<float> & xc, double topCutoff);
+  int FindBest(std::vector<float> & cx);
+  int FindTop(std::vector<int> & top, std::vector<float> & xc, double topCutoff);
   void DoOne(vecSeqMatch & out, const DNAVector & query, const DNAVector & target, int pos);
   void DoOneFloat(vecSeqMatch & out, const CCSignal & query, const CCSignal & target, int pos);
   void DoOneSlow(vecSeqMatch & out, const DNAVector & query, const DNAVector & target, int pos);
@@ -285,7 +283,7 @@ class SeqAnalyzer
   double m_topCutoff;
   int m_minLen;
 
-  svec<double> m_envelope;
+  std::vector<double> m_envelope;
   int m_envSize;
 
   LookupMatch m_lookup;

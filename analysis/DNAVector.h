@@ -3,16 +3,18 @@
 
 
 
-#include "base/SVector.h"
 #include <iostream>
 #include <map>
 #include <fstream>
 #include <string.h>
 #include <algorithm>
 #include <sstream>
+#include <vector>
+using namespace std;
 
-typedef svec<char> NumVector;
-typedef svec<NumVector> vecNumVector;
+
+typedef std::vector<char> NumVector;
+typedef std::vector<NumVector> vecNumVector;
 
 
 double DNA_A(char l);
@@ -238,7 +240,7 @@ public:
     } else {
       index = m_table[aa];
     }
-    if (index >= m_bases.isize() || index < 0) {
+    if (index >= m_bases.size() || index < 0) {
       cout << "ERROR(2): Illegal amino acid: " << aa << endl;
       index = 0;
     }
@@ -258,7 +260,7 @@ public:
 
     //cout << "Asking for " << tmp << endl;
 
-    for (i=0; i<m_codonBases.isize(); i++) {
+    for (i=0; i<m_codonBases.size(); i++) {
       if (m_codonBases[i] == tmp)
 	return m_aminoAcids[i];
     }
@@ -267,16 +269,16 @@ public:
     return 'Q';
   }
   
-  int GetCodonCount() const {return m_codonBases.isize();}
+  int GetCodonCount() const {return m_codonBases.size();}
   const string & GetCodon(int i) const {return m_codonBases[i];}
 
 private:
-  svec<int> m_table;
+  std::vector<int> m_table;
   
-  svec<AAAmb> m_bases;
+  std::vector<AAAmb> m_bases;
 
-  svec<char> m_aminoAcids;
-  svec<string> m_codonBases;
+  std::vector<char> m_aminoAcids;
+  std::vector<string> m_codonBases;
 
   void Set(const string & aa, const string & codon, int index) {
     char i = (aa.c_str())[0];
@@ -302,13 +304,13 @@ class DNAVector
 
   void resize(int n) {
     m_data.resize(n, 0);
-    if (m_qual.isize() > 0)
+    if (m_qual.size() > 0)
       m_qual.resize(n, 0);
   }
 
   void resize(int n, char c) {
     m_data.resize(n, c);
-    if (m_qual.isize() > 0)
+    if (m_qual.size() > 0)
       m_qual.resize(n, 0);
   }
 
@@ -330,12 +332,12 @@ class DNAVector
   }
 
   int Qual(int i) const {
-    if (m_qual.isize() == 0)
+    if (m_qual.size() == 0)
       return 0;
     return m_qual[i];
   }
 
-  int QualSize() const {return m_qual.isize();}
+  int QualSize() const {return m_qual.size();}
 
   void Set(int i, char c) {
     m_data[i] = c;
@@ -349,9 +351,7 @@ class DNAVector
 
   void RemoveGaps(); // Removes the character '-' from the sequences.
 
-  int size() const {return m_data.isize();}
-  int isize() const {return m_data.isize();}
-  long long lsize() const {return m_data.lsize();}
+  int size() const {return m_data.size();}
   
   const string &getName() const;
   const string &Name() const { return getName(); }
@@ -365,8 +365,8 @@ class DNAVector
   void setName(const string &newName);
 
   void SetQual(int i, int score) {
-    if (m_qual.isize() == 0)
-      m_qual.resize(m_data.isize(), 0);
+    if (m_qual.size() == 0)
+      m_qual.resize(m_data.size(), 0);
     m_qual[i] = score;
   }
 
@@ -380,9 +380,9 @@ class DNAVector
   void ToUpper();
 
   void operator += (const DNAVector & d) {
-    int n = isize();
-    resize(n+d.isize());
-    for (int i=0; i<d.isize(); i++)
+    int n = size();
+    resize(n+d.size());
+    for (int i=0; i<d.size(); i++)
       (*this)[i+n] = d[i];
   }
 
@@ -408,9 +408,9 @@ class DNAVector
 	  if(name != d.getName())
 		  return false;
 	  int i;
-	  if (isize() != d.isize())
+	  if (size() != d.size())
 		  return false;
-	  for (i=0; i<isize(); i++) {
+	  for (i=0; i<size(); i++) {
 		  if (m_data[i] != d[i])
 			  return false;
 	  }
@@ -423,9 +423,9 @@ class DNAVector
 
   bool operator < (const DNAVector & d) const {
 	  int i;
-	  int n = m_data.isize();
-	  if (d.isize() < n)
-		  n = d.isize();
+	  int n = m_data.size();
+	  if (d.size() < n)
+		  n = d.size();
 
 	  for (i=0; i<n; i++) {
 		  if (m_data[i] == d[i])
@@ -440,7 +440,7 @@ class DNAVector
 		  }
 	  }
 
-	  if (m_data.isize() < d.isize()) {
+	  if (m_data.size() < d.size()) {
 		  //cout << "3" << endl;
 		  return true;
 	  }
@@ -449,11 +449,11 @@ class DNAVector
   }
 
   void Print(ostream &o) const {
-    for(int i=0; i<m_data.isize(); i++) o << m_data[i];
+    for(int i=0; i<m_data.size(); i++) o << m_data[i];
   }
 
   void Print() const {
-    for(int i=0; i<m_data.isize(); i++) cout << m_data[i];
+    for(int i=0; i<m_data.size(); i++) cout << m_data[i];
   }
 
 
@@ -481,7 +481,7 @@ class DNAVector
       s[i] = m_data[start+i];
   }
 
-  svec<char> & Data() {return m_data;}
+  std::vector<char> & Data() {return m_data;}
   
   /** Finds the number of base positions that match with other 
       and returns the ratio to size of sequence (Identity) */
@@ -493,8 +493,8 @@ class DNAVector
 
 
  private:
-  svec<char> m_data;
-  svec<unsigned char> m_qual;
+  std::vector<char> m_data;
+  std::vector<unsigned char> m_qual;
   string name;
 };
 
@@ -533,7 +533,7 @@ class vecDNAVector
   const_DNAVectorRef getDNAVectorRef(const string &name) const;
 
   void RemoveGaps() {
-    for (int i=0; i<isize(); i++) {
+    for (int i=0; i<size(); i++) {
       m_data[i].RemoveGaps();
     }
   }
@@ -612,7 +612,7 @@ class vecDNAVector
   void Write(const string & fileName, bool bSkipEmpty = false) const;
   void WriteQuals(const string & fileName) const;
   void Read(const string & fileName, bool bProteins = false, bool shortName = false, bool allUpper = true, bool bAppend = false); // Note: it can read multiple fasta files if they are separated by a comma
-  void Read(const string & fileName, svec<string> & names);
+  void Read(const string & fileName, std::vector<string> & names);
   void ReadQ(const string & fileName); // Reads a fastq file
   void ReadOne(const string & fileName, bool bProteins = false, bool shortName = false, bool allUpper = true, bool bAppend = false); // Reads one single fasta file
 
@@ -770,7 +770,7 @@ class vecDNAVector
  protected:
   void setupMap();
 
-  svec<DNAVector> m_data;
+  std::vector<DNAVector> m_data;
 
   int default_name_index;
   map<string,int> m_name2index;

@@ -16,7 +16,7 @@
 
 //--------------------------------------------------------------------------------
 
-void Load(vecDNAVector & out, svec<string> & names, const string & file, bool addRC) 
+void Load(vecDNAVector & out, std::vector<string> & names, const string & file, bool addRC) 
 {
   /*
   FullNameParser fwParser;
@@ -104,7 +104,7 @@ int main( int argc, char** argv )
 
   vecDNAVector target, query;
 
-  svec<string> targetNames, queryNames;
+  std::vector<string> targetNames, queryNames;
 
   Load(query, queryNames, sQuery, true);
   Load(target, targetNames, sTarget, false);
@@ -178,9 +178,9 @@ int main( int argc, char** argv )
     }
     qualvector & q = covered[m.GetTargetID()];
 
-    //cout << m.GetTargetID() << " len=" << q.isize() << endl;
+    //cout << m.GetTargetID() << " len=" << q.size() << endl;
 
-    if (start + m.GetLength() >= q.isize()) {
+    if (start + m.GetLength() >= q.size()) {
       cout << "ERROR: startT=" <<  start << " startQ=" << m.GetStartQuery() << " len=" << m.GetLength() << endl;
       continue;
     }
@@ -198,7 +198,7 @@ int main( int argc, char** argv )
   unsigned long int coveredBases = 0;
   unsigned long int depthCov = 0;
 
-  for (i=0; i<covered.isize(); i++) {
+  for (i=0; i<covered.size(); i++) {
     qualvector & q = covered[i];
     allBases += (int)q.size();
     for (j=0; j<(int)q.size(); j++) {
@@ -295,7 +295,7 @@ int main( int argc, char** argv )
       
       
     }
-    svec<int> index;
+    std::vector<int> index;
     int len = dp.Merge(index);
 
     int qLen = (int)query[qID].size();

@@ -3,9 +3,11 @@
 #ifndef _SEQUENCEMATCH_H_
 #define _SEQUENCEMATCH_H_
 
-#include "base/SVector.h"
 #include <string>
 #include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
 
 // query is rc, not the target!
 class CMReadFileStream;

@@ -268,12 +268,14 @@ void WorkQueue::close_queue(){
   shutdown_status=1;
 }
 
-void WorkQueue::results_from_file(const char * filename, const svec<SeqChunk> & _queryInfo){
+void WorkQueue::results_from_file(const char * filename, const std::vector<SeqChunk> & _queryInfo){
   FILE * rf=fopen(filename,"r");
   long file_size;
   //preallocate vector space
   fseek(rf, 0 , SEEK_END);
+  std::cout<<"Pre-Allocating memory for "<<ftell(rf)/sizeof(t_result)<<" new elements"<<std::endl;
   resultsv.reserve(resultsv.size()+ftell(rf)/sizeof(t_result));
+  std::cout<<"Done!"<<std::endl;
   fseek(rf, 0 , SEEK_SET);
   t_result r;
   while (fread(&r,sizeof(r),1,rf)==1){
@@ -313,8 +315,8 @@ t_collect_status WorkQueue::collect_new_matches(MultiMatches &matches){
   results_mutex.lock();
   matches.reserve(matches.GetMatchCount()+resultsv.size());
   //ALG: update the MultiMatch
+  SingleMatch m;
   for (i=0;i<resultsv.size();i++){
-    SingleMatch m;
     m.SetQueryTargetID(resultsv[i].query_id, resultsv[i].target_id, resultsv[i].query_size);
     m.SetPos(resultsv[i].qstart, resultsv[i].tstart, resultsv[i].len, resultsv[i].reverse);
     m.SetProbability(resultsv[i].prob);

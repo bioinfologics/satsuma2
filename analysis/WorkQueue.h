@@ -53,7 +53,7 @@ typedef struct {
 class WorkQueue {
   public:
     WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, bool _probtable, int _slave_count, int _threads);
-    void results_from_file(const char * ,const svec<SeqChunk> & _queryInfo);
+    void results_from_file(const char * ,const std::vector<SeqChunk> & _queryInfo);
     void setup_queue();
     void add_pair(int targetFrom, int targetTo, int queryFrom, int queryTo, bool fast);
     unsigned int pending_pair_count();

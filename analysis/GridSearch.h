@@ -109,7 +109,7 @@ class SearchMatrix
     m_coords.resize(m_x * m_y);
     m_counts.resize(m_x * m_y, 0);
 
-    cout << "size x=" << m_x << " y=" << m_y << " size=" << m_coords.isize() << endl;
+    cout << "size x=" << m_x << " y=" << m_y << " size=" << m_coords.size() << endl;
 
     int i, j;
     for (i=0; i<m_x; i++) {
@@ -128,7 +128,7 @@ class SearchMatrix
   }
 
   void ClearCounts() {
-    for (int i=0; i<m_counts.isize(); i++) 
+    for (int i=0; i<m_counts.size(); i++) 
       m_counts[i] = 0;	
   }
 
@@ -181,10 +181,10 @@ class SearchMatrix
   int m_y;
   int m_blockX;
   int m_blockY;
-  svec<SEARCH_STATE> m_matrix;
-  svec<int> m_counts;
+  std::vector<SEARCH_STATE> m_matrix;
+  std::vector<int> m_counts;
 
-  svec<SearchCoordinates> m_coords;
+  std::vector<SearchCoordinates> m_coords;
   //vec<int> m_candidateCount;
   
 
@@ -303,9 +303,9 @@ class RepeatTrackerItem
 
   void SetRepeat(int start, int end) {
     int i;
-    if (end >= m_count.isize()) {
-      //cout << "ERROR: start= " << start << " end=" << end << " size=" << m_count.isize() << endl;
-      end = m_count.isize() - 1;
+    if (end >= m_count.size()) {
+      //cout << "ERROR: start= " << start << " end=" << end << " size=" << m_count.size() << endl;
+      end = m_count.size() - 1;
     }
     if (start < 0)
       start = 0;
@@ -316,7 +316,7 @@ class RepeatTrackerItem
 
  private:
   int m_gran;
-  svec<int> m_count;
+  std::vector<int> m_count;
 };
 
 
@@ -352,8 +352,8 @@ class RepeatTracker
 
 
  private:
-  svec<RepeatTrackerItem> m_tReps;
-  svec<RepeatTrackerItem> m_qReps;
+  std::vector<RepeatTrackerItem> m_tReps;
+  std::vector<RepeatTrackerItem> m_qReps;
 };
 
 
@@ -367,8 +367,8 @@ class GridSearch
 	     const vecDNAVector & query);
 
   
-  int NTargetChunks() const {return m_targetChunks.isize();}
-  int NQueryChunks() const {return m_queryChunks.isize();}
+  int NTargetChunks() const {return m_targetChunks.size();}
+  int NQueryChunks() const {return m_queryChunks.size();}
   void UpdateTargetWeights(MultiMatches & matches);
   void ConsiderTargets(int targetID,
 		       int targetStart,
@@ -385,37 +385,37 @@ class GridSearch
 	       int queryStart,
 	       int querytEnd);
 
-  int CollectTargets(svec<GridTarget> & targets, int n);
+  int CollectTargets(std::vector<GridTarget> & targets, int n);
 
-  void CollectSeeds(svec<GridTarget> & targets, int n);
+  void CollectSeeds(std::vector<GridTarget> & targets, int n);
 
   void ClearTargetWeights() {
     m_matrix.ClearCounts();
     int i;
-    for (i=0; i<m_vertical.isize(); i++) 
+    for (i=0; i<m_vertical.size(); i++) 
       m_vertical[i] = 0;
-    for (i=0; i<m_horizontal.isize(); i++) {
+    for (i=0; i<m_horizontal.size(); i++) {
       if (m_horizontal[i] > 0)
 	m_horizontal[i] = 1;
     }
   }
 
 
-  bool GetSelect(SeqChunkSelect & vertical, svec<int> & horizontal, int howMany); 
+  bool GetSelect(SeqChunkSelect & vertical, std::vector<int> & horizontal, int howMany); 
 
   const SeqChunk & TargetChunk(int i) const {return m_targetChunks[i];}
   const SeqChunk & QueryChunk(int i)  const {return m_queryChunks[i];}
 
   
 
-  svec<SeqChunk> m_queryChunks;
+  std::vector<SeqChunk> m_queryChunks;
  private:
 
-  svec<SeqChunk> m_targetChunks;
+  std::vector<SeqChunk> m_targetChunks;
   int m_size;
 
-  svec<GridSequence> m_targetSeq;
-  svec<GridSequence> m_querySeq;
+  std::vector<GridSequence> m_targetSeq;
+  std::vector<GridSequence> m_querySeq;
   RepeatTracker m_repTrack;
 
   int m_blocks;
@@ -429,11 +429,11 @@ class GridSearch
   
   SearchMatrix m_matrix;
 
-  svec<int> m_vertical;
-  svec<int> m_horizontal;
-  svec<int> m_allNs;
+  std::vector<int> m_vertical;
+  std::vector<int> m_horizontal;
+  std::vector<int> m_allNs;
 
-  svec<GridTarget> m_targets;
+  std::vector<GridTarget> m_targets;
 
 };
 

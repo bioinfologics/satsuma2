@@ -2,8 +2,8 @@
 #ifndef CODONTRANSLATE_H
 #define CODONTRANSLATE_H
 
-#include "base/SVector.h"
 #include <string>
+#include <vector>
 
 inline char as_i(char b) {
   char i = -1;
@@ -39,9 +39,9 @@ class CodonMatrix
   }
 
   double Get(int i) const {return m_row[i];}
-  int Size() const {return m_row.isize();}
+  int Size() const {return m_row.size();}
  private:
-  svec<double> m_row;
+  std::vector<double> m_row;
 };
 
 
@@ -169,9 +169,9 @@ class CodonTranslator
   const CodonMatrix & GetMatrix(int idx) const {return m_matrix[idx];}
 
  private:
-  svec<char> m_codons;
-  svec<int> m_index;
-  svec<CodonMatrix> m_matrix;
+  std::vector<char> m_codons;
+  std::vector<int> m_index;
+  std::vector<CodonMatrix> m_matrix;
 
   int GetIndex(char one, char two, char three) {
     
@@ -205,7 +205,7 @@ class CodonTranslator
   }
 
   int Find(char a) {
-    for (int i=0; i<m_codons.isize(); i++) {
+    for (int i=0; i<m_codons.size(); i++) {
       if (m_codons[i] == a) {
 	return i;
       }

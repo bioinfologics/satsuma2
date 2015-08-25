@@ -36,14 +36,14 @@ void CCSignal::ComputeEntropy(const DNAVector & in)
 {
   int i, j;
 
-  if (in.isize() < 1024) {
+  if (in.size() < 1024) {
     //cout << "Skip entropy." << endl
-    for (i=0; i<m_entropy.isize(); i++)
+    for (i=0; i<m_entropy.size(); i++)
       m_entropy[i] = 1.;
     return;
   }
 
-  int win = m_entropy.isize() / 512; // 32 bp windows
+  int win = m_entropy.size() / 512; // 32 bp windows
   for (i=0; i<(int)in.size(); i+= win) {
     double a = 0;
     double c = 0;
@@ -94,7 +94,7 @@ void CCSignal::ComputeEntropy(const DNAVector & in)
 
 
 
-void CCSignal::SeqToPCM(svec<float> & out, const DNAVector & in, char nuke) 
+void CCSignal::SeqToPCM(std::vector<float> & out, const DNAVector & in, char nuke) 
 {
   //========================================================
   int i, j;
@@ -133,12 +133,12 @@ void CCSignal::SeqToPCM(svec<float> & out, const DNAVector & in, char nuke)
  
 }
 
-void Smooth(svec<float> & out, const svec<float> & in)
+void Smooth(std::vector<float> & out, const std::vector<float> & in)
 {
   int i;
   out.clear();
-  out.resize(in.isize(), 0);
-  for (i=1; i<in.isize()-1; i++) {
+  out.resize(in.size(), 0);
+  for (i=1; i<in.size()-1; i++) {
     float d = in[i] + (in[i-1] + in[i+1])/2;
     out[i] = d / 2;
   }
@@ -179,7 +179,7 @@ void CCSignal::SetSize(int n)
 void CCSignal::SetSequence(const DNAVector & b, int size)
 {
 
-  if (size != m_A.isize()) {
+  if (size != m_A.size()) {
     m_A.clear();
     m_C.clear();
     m_G.clear();
@@ -208,7 +208,7 @@ void CCSignal::SetSequence(const DNAVector & b, int size)
 
 void CCSignal::Smooth()
 {
-  svec<float> tmp;
+  std::vector<float> tmp;
   ::Smooth(tmp, m_A);
   ::Smooth(m_A, tmp);
   ::Smooth(tmp, m_C);
@@ -223,7 +223,7 @@ void CCSignal::Smooth()
 void CCSignalProtein::SetSequence(const DNAVector & b, int size)
 {
   int i, j;
-  if (size != m_aa[0].isize()) {
+  if (size != m_aa[0].size()) {
     for (i=0; i<21; i++) {
       m_aa[i].clear();
       m_aa[i].resize(size, 0.);
@@ -259,11 +259,11 @@ void CCSignalProtein::SetSequence(const DNAVector & b, int size)
     for (j=0; j<(int)b.size(); j++) { 
       aa[j] -= off;
     }
-    for (; j<aa.isize(); j++)
+    for (; j<aa.size(); j++)
       aa[j] = 0.;
     
     double check = 0;
-    for (j=0; j<aa.isize(); j++)
+    for (j=0; j<aa.size(); j++)
       check += aa[j];
     //cout << "Check: " << check << endl;
   }
@@ -306,13 +306,13 @@ void CCSignalWithCodons::SetSequence(const DNAVector & b, int size)
     const CodonMatrix & m = trans.GetMatrix(idx);
     
     for (int j=0; j<m.Size(); j++) {
-      svec<float> & f = m_aa[j];
+      std::vector<float> & f = m_aa[j];
       f[i] = m.Get(j);
       f[i+1] = m.Get(j);
       f[i+2] = m.Get(j);
     }
 
-    //svec<float> & f2 = m_aa[idx];
+    //std::vector<float> & f2 = m_aa[idx];
     //f2[i] = 1.;
 
   }
@@ -321,7 +321,7 @@ void CCSignalWithCodons::SetSequence(const DNAVector & b, int size)
 
   
   for (i=0; i<21; i++) {
-    svec<float> & f = m_aa[i];
+    std::vector<float> & f = m_aa[i];
     double sum = 0.;
     for (j=0; j<(int)b.size(); j++) 
       sum += f[j];
@@ -383,19 +383,19 @@ void CrossCorrelation::AutoCorrelate(vector<float> &out, vector<float> &in)
 }
 
 
-void CrossCorrelation::CrossCorrelate(svec<float> & out, const CCSignal & one, const CCSignal & two)
+void CrossCorrelation::CrossCorrelate(std::vector<float> & out, const CCSignal & one, const CCSignal & two)
 {
   out.clear();
   out.resize(one.GetFullSize(), 0.);
 
-  svec<float> tmp;
+  std::vector<float> tmp;
   int i, j;
 
  
   for (j=0; j<one.GetCount(); j++) {
     DoOne(tmp, one.Get(j), two.Get(j));
 
-    for (i=0; i<out.isize(); i++) {
+    for (i=0; i<out.size(); i++) {
       //if (one.GetCount() <= 4 || j > 4)
       out[i] += tmp[i];
       tmp[i] = 0.;
@@ -406,7 +406,7 @@ void CrossCorrelation::CrossCorrelate(svec<float> & out, const CCSignal & one, c
   /*
   DoOne(tmp, one.GetA(), two.GetA());
 
-  for (i=0; i<out.isize(); i++) {
+  for (i=0; i<out.size(); i++) {
     out[i] += tmp[i];
     //out[i] = tmp[i];
     tmp[i] = 0.;
@@ -414,7 +414,7 @@ void CrossCorrelation::CrossCorrelate(svec<float> & out, const CCSignal & one, c
   
   DoOne(tmp, one.GetC(), two.GetC());
   
-  for (i=0; i<out.isize(); i++) {
+  for (i=0; i<out.size(); i++) {
     out[i] += tmp[i];
     //out[i] *= tmp[i];
     tmp[i] = 0.;
@@ -422,7 +422,7 @@ void CrossCorrelation::CrossCorrelate(svec<float> & out, const CCSignal & one, c
   
   DoOne(tmp, one.GetG(), two.GetG());
   
-  for (i=0; i<out.isize(); i++) {
+  for (i=0; i<out.size(); i++) {
     out[i] += tmp[i];
     //out[i] *= tmp[i];
     tmp[i] = 0.;
@@ -430,7 +430,7 @@ void CrossCorrelation::CrossCorrelate(svec<float> & out, const CCSignal & one, c
   DoOne(tmp, one.GetT(), two.GetT());
   
 
-  for (i=0; i<out.isize(); i++) {
+  for (i=0; i<out.size(); i++) {
     out[i] += tmp[i];
     //out[i] *= tmp[i];
     //cout << i << " -> " << out[i] << endl;
@@ -442,13 +442,13 @@ void CrossCorrelation::CrossCorrelate(svec<float> & out, const CCSignal & one, c
 
 
 
-void CrossCorrelation::DoOne(svec<float> & o, const svec<float> & in1, const svec<float> & in2)
+void CrossCorrelation::DoOne(std::vector<float> & o, const std::vector<float> & in1, const std::vector<float> & in2)
 {
   int i;
   o.resize(in1.size(), 0);
 
-  if (m_pFFT == NULL || m_size != in1.isize()) {
-    m_size = in1.isize();
+  if (m_pFFT == NULL || m_size != in1.size()) {
+    m_size = in1.size();
     if (m_pFFT != NULL) {
       cout << "WARNING: re-instantiating FFT object!" << endl;
       delete m_pFFT;
@@ -458,9 +458,9 @@ void CrossCorrelation::DoOne(svec<float> & o, const svec<float> & in1, const sve
     //cout << "done." << endl;
   }
 
-  svec<float> tmp1;
+  std::vector<float> tmp1;
   tmp1.resize(in1.size(), 0.);
-  svec<float> tmp2;
+  std::vector<float> tmp2;
   tmp2.resize(in2.size(), 0.);
 
   float * p1 = &tmp1[0];
@@ -474,7 +474,7 @@ void CrossCorrelation::DoOne(svec<float> & o, const svec<float> & in1, const sve
   m_pFFT->do_fft(p2, &in2[0]);
 
 
-  int N = tmp1.isize() / 2;
+  int N = tmp1.size() / 2;
   //cout << "N=" << N << endl;
 
   tmp1[0] *= tmp2[0];
@@ -563,42 +563,42 @@ SeqAnalyzer::SeqAnalyzer()
 }
 
 
-void SeqAnalyzer::MatchUp(vecSeqMatch & out, const CCSignal & query, const CCSignal & target, svec<float> & xc)
+void SeqAnalyzer::MatchUp(vecSeqMatch & out, const CCSignal & query, const CCSignal & target, std::vector<float> & xc)
 {
   int i;
 
-  svec<int> all;
+  std::vector<int> all;
   all.reserve(400);
 
   FindTop(all, xc, m_topCutoff);
 
-  for (i=0; i<all.isize(); i++) {
+  for (i=0; i<all.size(); i++) {
     int pos = all[i];
-    pos -= xc.isize() / 2;
+    pos -= xc.size() / 2;
     DoOneFloat(out, query, target, pos);
   }
 }
 
  
-void SeqAnalyzer::MatchUp(vecSeqMatch & out, const DNAVector & query, const DNAVector & target, svec<float> & xc)
+void SeqAnalyzer::MatchUp(vecSeqMatch & out, const DNAVector & query, const DNAVector & target, std::vector<float> & xc)
 {
   int i;
   
-  svec<int> all;
+  std::vector<int> all;
   all.reserve(400);
 
   FindTop(all, xc, m_topCutoff);
 
-  //all.resize(xc.isize());
-  //for (i=0; i<xc.isize(); i++) {
+  //all.resize(xc.size());
+  //for (i=0; i<xc.size(); i++) {
   //  all[i] = i;
   //}
 
-  //cout << "Evaluating " << all.isize() << " positions." << endl;
+  //cout << "Evaluating " << all.size() << " positions." << endl;
 
-  for (i=0; i<all.isize(); i++) {
+  for (i=0; i<all.size(); i++) {
     int pos = all[i];
-    pos -= xc.isize() / 2;
+    pos -= xc.size() / 2;
     DoOne(out, query, target, pos);
     //DoOneSlow(out, query, target, pos);
   }
@@ -679,8 +679,8 @@ void SeqAnalyzer::DoOne(vecSeqMatch & out, const DNAVector & query, const DNAVec
   int n = 0;
 
   int minLen = m_minLen;
-  if (target.isize() + 4 < minLen)
-    minLen = target.isize()-4;
+  if (target.size() + 4 < minLen)
+    minLen = target.size()-4;
 
   for (i=0; i<(int)target.size(); i++) {
   
@@ -818,7 +818,7 @@ void SeqAnalyzer::DoOneSlow(vecSeqMatch & out, const DNAVector & query, const DN
 
   double match = 0;
   
-  //svec<int> matches;
+  //std::vector<int> matches;
   //matches.resize(target.size(), 0);
   double minMatches = ((double)m_minLen * m_minIdent);
 
@@ -858,12 +858,12 @@ void SeqAnalyzer::DoOneSlow(vecSeqMatch & out, const DNAVector & query, const DN
   //cout << "Done here!" << endl;
 }
 
-int SeqAnalyzer::FindBest(svec<float> & xc)
+int SeqAnalyzer::FindBest(std::vector<float> & xc)
 {
   int i;
   double max = 0.;
   int best = -1;
-  for (i=0; i<xc.isize(); i++) {
+  for (i=0; i<xc.size(); i++) {
     //cout << "i=" << i << " -> " << xc[i] << endl;
     if (xc[i] > max) {
       max = xc[i];
@@ -875,7 +875,7 @@ int SeqAnalyzer::FindBest(svec<float> & xc)
   return best;
 }
 
-int SeqAnalyzer::FindTop(svec<int> & top, svec<float> & xc, double topCutoff)
+int SeqAnalyzer::FindTop(std::vector<int> & top, std::vector<float> & xc, double topCutoff)
 {
   //First, let's find the best score
   int i;
@@ -883,22 +883,22 @@ int SeqAnalyzer::FindTop(svec<int> & top, svec<float> & xc, double topCutoff)
   int best = -1;
   double overTop = 1.;
 
-  int nPoints = xc.isize() / m_envSize;
+  int nPoints = xc.size() / m_envSize;
   if (nPoints == 0)
     nPoints = 1;
   //cout << "nPoints: " << nPoints << endl;
-  if (m_envelope.isize() != nPoints) {
+  if (m_envelope.size() != nPoints) {
     m_envelope.clear();
     m_envelope.resize(nPoints, 0.) ;
   } else {
-    for (i=0; i<m_envelope.isize(); i++)
+    for (i=0; i<m_envelope.size(); i++)
       m_envelope[i] = 0.;
   } 
 
 
   double avg = 0.;
 
-  for (i=0; i<xc.isize(); i++) {
+  for (i=0; i<xc.size(); i++) {
     double d = xc[i] * xc[i];
     avg += xc[i];
     //cout << "i=" << i << " index=" << i/nPoints << endl;
@@ -911,7 +911,7 @@ int SeqAnalyzer::FindTop(svec<int> & top, svec<float> & xc, double topCutoff)
   }
 
   // MGG: Possible speed-up: exit if the average is below an absolute  threshold
-  avg /= (double)xc.isize();
+  avg /= (double)xc.size();
   //cout << "Average=" << avg << endl;
   //if (avg < 0.005) {
   //  top.push_back(best);
@@ -919,7 +919,7 @@ int SeqAnalyzer::FindTop(svec<int> & top, svec<float> & xc, double topCutoff)
   // }
 
 
-  for (i=0; i<m_envelope.isize(); i++) {
+  for (i=0; i<m_envelope.size(); i++) {
     m_envelope[i] = sqrt(m_envelope[i] / (double)m_envSize);
     //cout << "i=" << i << " env=" << m_envelope[i] << endl;
   }
@@ -927,7 +927,7 @@ int SeqAnalyzer::FindTop(svec<int> & top, svec<float> & xc, double topCutoff)
 
   max *= topCutoff;
   // Get everything in range
-  for (i=0; i<xc.isize(); i++) {
+  for (i=0; i<xc.size(); i++) {
     //cout << "i=" << i << " xc=" << xc[i] << " dev=" << m_envelope[i/m_envSize];
     if (xc[i] > m_envelope[i/m_envSize] * topCutoff + overTop) {
       //cout << "Accepting " << xc[i] << " " << i << " over " <<  m_envelope[i/m_envSize] * topCutoff + overTop << endl;
@@ -968,7 +968,7 @@ double PrintMatch(const DNAVector & query, const DNAVector & target, const SeqMa
 {
   int i, j;
 
-  svec<string> q, t, a;
+  std::vector<string> q, t, a;
   int l = 80;
  
   string qq, tt, mm;
@@ -1026,7 +1026,7 @@ double PrintMatch(const DNAVector & query, const DNAVector & target, const SeqMa
     cout << "Query " << m.GetStartQuery() << " - " << m.GetStartQuery() + m.GetLength();
     cout << "   Target " << m.GetStartTarget() << " - " << m.GetStartTarget() + m.GetLength() << endl;
     cout <<  "--------------------------------------------------------------------------------" << endl;      
-    for (i=0; i<q.isize(); i++) {
+    for (i=0; i<q.size(); i++) {
       cout << q[i] << endl;
       cout << a[i] << endl;
       cout << t[i] << endl;

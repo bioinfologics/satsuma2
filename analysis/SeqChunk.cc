@@ -22,14 +22,14 @@ void SeqChunkSelect::Write(const string & file)
   int i = 1;
   f.Write(i);
 
-  len = m_query.isize();
+  len = m_query.size();
   f.Write(len);
 
   for (i=0; i<len; i++) {
     f.Write(m_query[i]);
   }
 
-  len = m_target.isize();
+  len = m_target.size();
   f.Write(len);
 
   for (i=0; i<len; i++) {
@@ -70,10 +70,10 @@ void SeqChunkSelect::MergeRead(const string & file)
 
 
 void ChunkManager::ChunkItSelect(vecDNAVector & out, 
-    svec<SeqChunk> & chunks, 
+    std::vector<SeqChunk> & chunks, 
     const vecDNAVector & in, 
-    const svec<string> & names,
-    const svec<int> & selection,
+    const std::vector<string> & names,
+    const std::vector<int> & selection,
     int nBlocks,
     int myBlock,
     double line) 
@@ -95,8 +95,8 @@ void ChunkManager::ChunkItSelect(vecDNAVector & out,
   out.resize(n);
 
 
-  cout << "select=" << selection.isize() << "\tchunks=" << n << endl;
-  if (selection.isize() > 0 && selection.isize() != n) {
+  cout << "select=" << selection.size() << "\tchunks=" << n << endl;
+  if (selection.size() > 0 && selection.size() != n) {
     cout << "*************************************************" << endl;      
     cout << "ERROR: chunk size and selection do not match up!!" << endl;      
   }
@@ -141,7 +141,7 @@ void ChunkManager::ChunkItSelect(vecDNAVector & out,
 
       //cout << "Selection i=" << i << " k=" << k << " sel=" << selection[k] << endl;
 
-      if (selection.isize() > 0) {
+      if (selection.size() > 0) {
         if (selection[k] > 0) {
           out[k].SetToSubOf(in[i], start, end-start);
         }
@@ -149,7 +149,7 @@ void ChunkManager::ChunkItSelect(vecDNAVector & out,
         if (k >= firstBlock && k < lastBlock) {
           out[k].SetToSubOf(in[i], start, end-start);
           int n = CountNs(out[k]);
-          if (n >= out[k].isize())
+          if (n >= out[k].size())
             out[k].clear();
         }
       }

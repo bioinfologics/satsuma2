@@ -14,7 +14,7 @@ MatchDynProg::MatchDynProg(int targetStart, int targetLen)
 }
 
 
-double MatchDynProg::PrettyPrint(const svec<int> & index, int start, const DNAVector & target, const DNAVector & query, int len)
+double MatchDynProg::PrettyPrint(const std::vector<int> & index, int start, const DNAVector & target, const DNAVector & query, int len)
 {
   string t, q, m, amb;
 
@@ -24,7 +24,7 @@ double MatchDynProg::PrettyPrint(const svec<int> & index, int start, const DNAVe
   int last = -1;
 
   double coveredPositions = 0;
-  for (i=0; i<index.isize(); i++) {
+  for (i=0; i<index.size(); i++) {
     int k = start + i;
     if (index[i] == -1) {
       t += target[k];
@@ -80,7 +80,7 @@ double MatchDynProg::PrettyPrint(const svec<int> & index, int start, const DNAVe
   //cout << m << endl;
   //cout << t << endl;
 
-  svec<string> tt, qq, mm, ambamb;
+  std::vector<string> tt, qq, mm, ambamb;
   string tw, qw, mw, ambw;
 
   int length = strlen(m.c_str());
@@ -112,7 +112,7 @@ double MatchDynProg::PrettyPrint(const svec<int> & index, int start, const DNAVe
 
   cout << "Identity (w/ indel count): " << 100. * matches/(double)len << " %" << endl;
   cout << "-------------------------------------------------------------------------------" << endl << endl;
-  for (i=0; i<tt.isize(); i++) {
+  for (i=0; i<tt.size(); i++) {
     cout << qq[i] << endl;
     cout << mm[i] << endl;
     cout << tt[i] << endl;
@@ -144,8 +144,8 @@ void MatchDynProg::AddMatch(const DNAVector & target, const DNAVector & query, c
   int length = m.GetLength();
   if (startTarget < 0)
     startTarget = 0;
-  if (startTarget + length >= target.isize())
-    length = target.isize() - startTarget - 1;
+  if (startTarget + length >= target.size())
+    length = target.size() - startTarget - 1;
 
 
   if (m.GetStartQuery() < 0)
@@ -164,7 +164,7 @@ void MatchDynProg::AddMatch(const DNAVector & target, const DNAVector & query, c
     //pen = 0.;
  
 
-    if (i - m_targetStart >= m_data.isize()) {
+    if (i - m_targetStart >= m_data.size()) {
       cout << "WARNING: adjusting dyn prog array size!" << endl;
       m_data.resize(i - m_targetStart + 1);
     }
@@ -173,20 +173,20 @@ void MatchDynProg::AddMatch(const DNAVector & target, const DNAVector & query, c
   }
 }
 
-int MatchDynProg::Merge(svec<int> & index)
+int MatchDynProg::Merge(std::vector<int> & index)
 {
   int i, j, k;
-  if (m_data.isize() == 0)
+  if (m_data.size() == 0)
     return -1;
 
   MDItemList & first = m_data[0];
-  MDItemList & last = m_data[m_data.isize()-1];
+  MDItemList & last = m_data[m_data.size()-1];
   // Reset scores
   for (i=0; i<first.GetCount(); i++) {
     first.Get(i).Merge(-1, 0, 0);
   }
   //cout << "Init." << endl;
-  for (i=1; i<m_data.isize(); i++) {
+  for (i=1; i<m_data.size(); i++) {
     MDItemList & one = m_data[i-1];
     MDItemList & two = m_data[i];
 
@@ -228,14 +228,14 @@ int MatchDynProg::Merge(svec<int> & index)
   if (best < 0)
     return -1;
   index.clear();
-  index.resize(m_data.isize(), -1);
-  //cout << "best: " << best << " " << m_data.isize() << endl;
-  index[m_data.isize()-1] = last.Get(best).GetIndex();  
+  index.resize(m_data.size(), -1);
+  //cout << "best: " << best << " " << m_data.size() << endl;
+  index[m_data.size()-1] = last.Get(best).GetIndex();  
   int prev = last.Get(best).GetPrevIndex();
 
   
   //cout << "Clean." << endl;
-  for (i=m_data.isize()-2; i>=0; i--) {
+  for (i=m_data.size()-2; i>=0; i--) {
     index[i] = m_data[i].Get(prev).GetIndex();
     prev = m_data[i].Get(prev).GetPrevIndex();
     //cout << "i=" << i << " index=" << index[i] << endl;
@@ -243,16 +243,16 @@ int MatchDynProg::Merge(svec<int> & index)
 
   
   k = 0;
-  for (i=0; i<index.isize(); i++) {
+  for (i=0; i<index.size(); i++) {
     int curr = index[i];
-    while (i+1<index.isize() && index[i+1] <= curr) {     
+    while (i+1<index.size() && index[i+1] <= curr) {     
       index[i+1] = -1;
       i++;
     }
   }
 
   //cout << "Done!" << endl;
-  return index.isize() + k;
+  return index.size() + k;
 }
 
 
@@ -278,11 +278,11 @@ bool XCDynProg::FindBestBracket(int & last, int & m, int & first)
   //int last = -1;
   double bestTotal = 9999999999999999999.;
 
-  svec<double> minScores;
+  std::vector<double> minScores;
   minScores.resize(tSize, bestTotal);
 
   for (i=0; i<tSize; i++) {
-    for (j=0; j<m_matrix.isize(); j++) {
+    for (j=0; j<m_matrix.size(); j++) {
       if (m_matrix[j].Score(i) < minScores[i]) {
 	//cout << "i=" << i << " j=" << j << " score=" << m_matrix[j].Score(i) << endl;
 	minScores[i] = m_matrix[j].Score(i);
@@ -302,7 +302,7 @@ bool XCDynProg::FindBestBracket(int & last, int & m, int & first)
 
   
   for (i=tSize-1; i>=1; i--) {    
-    for (j=0; j<m_matrix.isize(); j++) {
+    for (j=0; j<m_matrix.size(); j++) {
       double score = m_matrix[j].Score(i);
 
       if (score == minScores[i] && m_matrix[j].Score(i-1) == score) {
@@ -497,17 +497,17 @@ double XCDynProg::Align(const MultiProtein & target, const MultiProtein &query, 
 
   //cout << "Setting up structures" << endl;
   for (i=0; i<filter.GetTopCount(); i++) {
-    //cout << " -> " << i << " shift=" << filter.GetShift(i) << " " << m_matrix.isize() << endl;
+    //cout << " -> " << i << " shift=" << filter.GetShift(i) << " " << m_matrix.size() << endl;
     
-    m_matrix[i].SetUp(query.Sequence(), filter.GetShift(i), target.isize());
+    m_matrix[i].SetUp(query.Sequence(), filter.GetShift(i), target.size());
   }
 
   //cout << "Dynprog." << endl;
-  for (i=1; i<target.isize(); i++) {
-    for (j=0; j<m_matrix.isize(); j++) {
+  for (i=1; i<target.size(); i++) {
+    for (j=0; j<m_matrix.size(); j++) {
       if (m_matrix[j].Letter(i-1) == 0)
 	continue;
-      for (k=0; k<m_matrix.isize(); k++) {
+      for (k=0; k<m_matrix.size(); k++) {
 
 	//?????????????????????????
 	//if (m_matrix[k].Letter(i-1) == 0)
@@ -557,7 +557,7 @@ double XCDynProg::Align(const MultiProtein & target, const MultiProtein &query, 
   }
 
   /*
-  for (i=0; i<target.isize(); i++) {
+  for (i=0; i<target.size(); i++) {
     cout << "i=" << i << "\t";
     for (j=0; j<5; j++) {
       cout << m_matrix[j].Score(i) << " (" << m_matrix[j].Back(i) << ")\t";
@@ -571,9 +571,9 @@ double XCDynProg::Align(const MultiProtein & target, const MultiProtein &query, 
   // Traceback...
   int last = -1;
   double bestTotal = 9999999999999999999.;
-  for (i=target.isize()-1; i>=0; i--) {
+  for (i=target.size()-1; i>=0; i--) {
     
-    for (j=0; j<m_matrix.isize(); j++) {
+    for (j=0; j<m_matrix.size(); j++) {
       if (m_matrix[j].Score(i) < bestTotal) {
 	bestTotal = m_matrix[j].Score(i);
 	last = j;

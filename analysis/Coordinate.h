@@ -4,7 +4,6 @@
 #include <map>
 #include <string>
 #include <sstream>
-#include "base/SVector.h"
 //#include "base/FileParser.h"
 //#include "src/AnnotationQuery/NCList.h"
 

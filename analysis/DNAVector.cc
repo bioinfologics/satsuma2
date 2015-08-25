@@ -314,7 +314,7 @@ char AACodons::GetCodon(const DNAVector & d, int pos)
   
   //cout << "Asking for " << tmp << endl;
   
-  for (i=0; i<m_codonBases.isize(); i++) {
+  for (i=0; i<m_codonBases.size(); i++) {
     if (m_codonBases[i] == tmp)
       return m_aminoAcids[i];
   }
@@ -475,7 +475,7 @@ bool DNAVector::SetToSubOf(const DNAVector & v, int start)
 void DNAVector::RemoveGaps() 
 {
   int i, k = 0;
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     if (m_data[i] != '-' && m_data[i] != '.') {
       m_data[k] = m_data[i];
       k++;
@@ -485,7 +485,7 @@ void DNAVector::RemoveGaps()
 }
 
 void DNAVector::ReverseComplement() {
-  int n = m_data.isize();
+  int n = m_data.size();
   int i = 0;
   int j = n-1;
 
@@ -504,8 +504,8 @@ void DNAVector::ReverseComplement() {
     
   }
 
-  if (m_qual.isize() > 0) {
-    n = m_data.isize();
+  if (m_qual.size() > 0) {
+    n = m_data.size();
     i = 0;
     j = n-1;
 
@@ -526,7 +526,7 @@ void DNAVector::ReverseComplement() {
 }
 
 void DNAVector::Reverse() {
-  int n = m_data.isize();
+  int n = m_data.size();
   int i = 0;
   int j = n-1;
 
@@ -543,8 +543,8 @@ void DNAVector::Reverse() {
     
   }
 
-  if (m_qual.isize() > 0) {
-    n = m_data.isize();
+  if (m_qual.size() > 0) {
+    n = m_data.size();
     i = 0;
     j = n-1;
 
@@ -578,11 +578,11 @@ void DNAVector::SetFromBases(const string & s)
 
 void DNAVector::Proteinize()
 {
-  char * p = new char[m_data.isize()+1];
+  char * p = new char[m_data.size()+1];
   int i;
-  for (i=0; i<m_data.isize(); i++)
+  for (i=0; i<m_data.size(); i++)
     p[i] = m_data[i];
-  p[m_data.isize()] = 0;
+  p[m_data.size()] = 0;
   SetFromProteins(p);
   delete [] p;
 }
@@ -591,7 +591,7 @@ void DNAVector::Proteinize()
 void DNAVector::ToUpper()
 {
   int i;
-  for (i=0; i<m_data.isize(); i++)
+  for (i=0; i<m_data.size(); i++)
     m_data[i] = (char)toupper(m_data[i]);
 }
 
@@ -617,7 +617,7 @@ void DNAVector::SetFromProteins(const string & s)
 void DNAVector::Write(FILE * p) const
 {
   int i;
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     if (i > 0 && i % 80 == 0)
       fprintf(p, "\n");
     fprintf(p, "%c", m_data[i]);
@@ -630,7 +630,7 @@ void DNAVector::Write(FILE * p) const
 void DNAVector::Write(ostream &s) const
 {
   int i;
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     if (i > 0 && i % 80 == 0)
       s << endl;
     s << m_data[i];
@@ -641,7 +641,7 @@ void DNAVector::Write(ostream &s) const
 void DNAVector::WriteOneLine(ostream &s) const
 {
   int i;
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     s << m_data[i];
   }
   s << endl;
@@ -652,7 +652,7 @@ void DNAVector::WriteOneLine(ostream &s) const
 void DNAVector::WriteQual(ostream &s) const
 {
   int i;
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     if (i > 0 && i % 80 == 0)
       s << endl;
     s << (int) m_qual[i]<<" ";
@@ -662,7 +662,7 @@ void DNAVector::WriteQual(ostream &s) const
 void DNAVector::WriteQual(FILE * p) const
 {
   int i;
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     if (i > 0 && i % 80 == 0)
       fprintf(p, "\n");;
     fprintf(p, "%d ", m_qual[i]);
@@ -673,12 +673,12 @@ void DNAVector::WriteQual(FILE * p) const
 
 
 void DNAVector::ExtendWithString(const string& extension) {
-  ExtendWithString(extension, isize());
+  ExtendWithString(extension, size());
 }
 
 void DNAVector::ExtendWithString(const string& extension, int extendFrom) {
   //FILE_LOG(logDEBUG3) << "Requesting extension from: " << extendFrom << " extension size: " << extension.size();
-  if(extendFrom>isize() || extendFrom<0) { 
+  if(extendFrom>size() || extendFrom<0) { 
     //FILE_LOG(logWARNING) << "Requesting extension of sequence given wrong index";
     return; 
   }
@@ -695,7 +695,7 @@ bool DNAVector::Append(const DNAVector & d, int min, int max, double ident)
     int mis = (int)((1. - ident) * (double)i + 0.5);
     int no = 0;
     for (j=0; j<i; j++) {
-      int x = isize()-i+j;
+      int x = size()-i+j;
       if (x < 0)
 	return false;
       //cout << (*this)[x] << " " << d[j] << " " << x << " " << j << endl;
@@ -711,7 +711,7 @@ bool DNAVector::Append(const DNAVector & d, int min, int max, double ident)
     //cout << "Merge, lap=" << i << endl;
     // Merge and get out.
     for (j=0; j<i; j++) {
-      int x = isize()-i+j;
+      int x = size()-i+j;
       if ((*this)[x] != d[j]) {
 	string bases;
 	bases = (*this)[x];
@@ -719,10 +719,10 @@ bool DNAVector::Append(const DNAVector & d, int min, int max, double ident)
 	(*this)[x] = GetAmbiguous(bases);
       }
     }
-    int oldSize = isize();
-    resize(isize()-i+d.isize());
-    //cout << "other size=" << d.isize() << " my size=" << isize() << endl;
-    for (j=i; j<d.isize(); j++) {
+    int oldSize = size();
+    resize(size()-i+d.size());
+    //cout << "other size=" << d.size() << " my size=" << size() << endl;
+    for (j=i; j<d.size(); j++) {
       int x = oldSize-i+j;
       //cout << "Assign " << j << " to " << x << endl;
       (*this)[x] = d[j];
@@ -757,7 +757,7 @@ float DNAVector::FindIdentHP(const DNAVector& other, int max, int totaldiff) con
   int misMatchCnt = 0;
   char a = 'N';
   char b = 'N';
-  while (i<isize() && j < other.isize()) {    
+  while (i<size() && j < other.size()) {    
     a = (*this)[i];
     b = other[j];
     //cout << a << " " << b << " " << i << " " << j << endl;
@@ -767,10 +767,10 @@ float DNAVector::FindIdentHP(const DNAVector& other, int max, int totaldiff) con
       int jj = j;
       do {
 	i++;
-      } while(i<isize() && (*this)[i] == a);
+      } while(i<size() && (*this)[i] == a);
       do {
 	j++;
-      } while(j<other.isize() && other[j] == b);
+      } while(j<other.size() && other[j] == b);
        
       int diff = (j-jj) - (i-ii);
       if (diff < 0)
@@ -801,14 +801,14 @@ vecDNAVector::vecDNAVector(const string& file) {
 vecDNAVector::vecDNAVector(const vecDNAVector &other) : m_data(other.m_data), default_name_index(other.default_name_index), m_name2index(other.m_name2index) {}
 
 vecDNAVector::~vecDNAVector() {
-	for(svec<DNAVector>::iterator currVector = m_data.begin(); currVector != m_data.end(); currVector++)
+	for(std::vector<DNAVector>::iterator currVector = m_data.begin(); currVector != m_data.end(); currVector++)
 		invalidateReferences(currVector->getName());
 }
 
 //references intentionally not copied
 vecDNAVector &vecDNAVector::operator = (const vecDNAVector &other) {
 	if(this != &other) {
-		for(svec<DNAVector>::iterator currVector = m_data.begin(); currVector != m_data.end(); currVector++)
+		for(std::vector<DNAVector>::iterator currVector = m_data.begin(); currVector != m_data.end(); currVector++)
 			invalidateReferences(currVector->getName());
 		m_data = other.m_data;
 		default_name_index = other.default_name_index;
@@ -868,7 +868,7 @@ vecDNAVector::DNAVectorRef vecDNAVector::getDNAVectorRef(const string &name) {
 }
 
 void vecDNAVector::resize(int n) {
-	int prevSize = m_data.isize();
+	int prevSize = m_data.size();
   //If the size is decreased, erase the map entries for
   //indices beyond the new size and invalidate their references.
 	if(n < prevSize)
@@ -897,7 +897,7 @@ void vecDNAVector::reserve(unsigned int newSize) {
 }
 
 void vecDNAVector::clear() {
-	for(svec<DNAVector>::iterator currVector = m_data.begin(); currVector != m_data.end(); currVector++)
+	for(std::vector<DNAVector>::iterator currVector = m_data.begin(); currVector != m_data.end(); currVector++)
 		invalidateReferences(currVector->getName());
 
   m_data.clear();
@@ -954,7 +954,7 @@ void vecDNAVector::erase(int index) {
 	  m_name2index.erase((*this)[index].getName());
 	  invalidateReferences(m_data[index].getName());
 	  m_data.erase(m_data.begin() + index);
-	  for(int i = index; i < m_data.isize(); i++)
+	  for(int i = index; i < m_data.size(); i++)
 		  m_name2index[(*this)[i].getName()] = i;
 }
 
@@ -972,7 +972,7 @@ void vecDNAVector::fast_erase(int index) {
 	  invalidateReferences((*this)[index].getName());
 	  swap((*this)[m_data.size()-1], (*this)[index]);
 	  m_data.pop_back();
-	  if(index < m_data.isize())
+	  if(index < m_data.size())
 		  m_name2index[(*this)[index].getName()] = index;
 }
 
@@ -986,15 +986,7 @@ bool vecDNAVector::fast_erase(const string &name) {
 }
 
 int vecDNAVector::size() const {
-	return m_data.isize();
-}
-
-int vecDNAVector::isize() const {
-	return m_data.isize();
-}
-
-long long vecDNAVector::lsize() const {
-	return m_data.lsize();
+	return m_data.size();
 }
 
 long long vecDNAVector::totalBases() const {
@@ -1009,11 +1001,11 @@ long long vecDNAVector::totalBases() const {
 void vecDNAVector::DoProteins(bool b) 
 {
   int i, j;
-  for (i=0; i<m_data.isize(); i++) {
+  for (i=0; i<m_data.size(); i++) {
     DNAVector & d = (*this)[i];
-    int n = d.isize() / 3;
-    if (n * 3 != d.isize())
-      cout << "WARNING: size of sequence " << (*this)[i].getName() << " is not a multiple of 3 (protein conversion: " << d.isize() << " )" << endl;
+    int n = d.size() / 3;
+    if (n * 3 != d.size())
+      cout << "WARNING: size of sequence " << (*this)[i].getName() << " is not a multiple of 3 (protein conversion: " << d.size() << " )" << endl;
 
     char * p = new char[n+1];
 
@@ -1040,12 +1032,12 @@ void vecDNAVector::ReadV(const string & file)
   s.Open(file.c_str());
   
   s.Read(ver);
-  int size = 0;
+  int new_size = 0;
 
-  s.Read(size);
-  resize(size);
+  s.Read(new_size);
+  resize(new_size);
 
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     CMString n;
     s.Read(n);
     DNAVector & d = (*this)[i];
@@ -1069,13 +1061,13 @@ void vecDNAVector::WriteV(const string & file) const
   s.Open(file.c_str());
   
   s.Write(ver);
-  s.Write(isize());
+  s.Write(size());
 
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     CMString n = (*this)[i].getName().c_str();
     s.Write(n);
     const DNAVector & d = (*this)[i];
-    int len = d.isize();
+    int len = d.size();
     s.Write(len);
     for (j=0; j<len; j++)
       s.Write(d[j]);
@@ -1090,10 +1082,10 @@ void vecDNAVector::Write(const string & fileName, bool bSkipEmpty) const
 {
   FILE * p = fopen(fileName.c_str(), "w");
   int i;
-  for (i=0; i<isize(); i++) {
-    if (bSkipEmpty && (*this)[i].isize() == 0)
+  for (i=0; i<size(); i++) {
+    if (bSkipEmpty && (*this)[i].size() == 0)
       continue;
-    //cout << "size: " << (*this)[i].isize() << " skip=" << bSkipEmpty << endl;
+    //cout << "size: " << (*this)[i].size() << " skip=" << bSkipEmpty << endl;
     if ((*this)[i].getName() == "") 
       fprintf(p, ">Sequence_%d\n", i);
     else
@@ -1108,7 +1100,7 @@ void vecDNAVector::WriteQuals(const string & fileName) const
 {
   FILE * p = fopen(fileName.c_str(), "w");
   int i;
-  for (i=0; i<isize(); i++) {
+  for (i=0; i<size(); i++) {
     fprintf(p, "%s\n", (*this)[i].getName().c_str());
     (*this)[i].WriteQual(p);
   }
@@ -1119,7 +1111,7 @@ void vecDNAVector::WriteQuals(const string & fileName) const
 
 void vecDNAVector::ReadQuals(const string & fileName)
 {
-  if (m_data.isize() == 0) {
+  if (m_data.size() == 0) {
     cout << "vecDNAVector ERROR: you need to load the bases first!" << endl;
     return;
   }
@@ -1180,7 +1172,7 @@ void vecDNAVector::ReadQ(const string & fileName) // Reads a fastq file
     parser.ParseLine();
     parser.ParseLine();
   }
-  //cout << "Sequences: " << isize() << endl;
+  //cout << "Sequences: " << size() << endl;
   setupMap();
  
 }
@@ -1212,7 +1204,7 @@ void vecDNAVector::ReadOne(const string & fileName, bool bProteins, bool shortNa
 	if (!bAppend)
 	  m_data.clear();
 
-	int counter = m_data.isize();
+	int counter = m_data.size();
 	int k = counter;
 	//cout << "Counter: " << counter << endl;
 	// reserve some space
@@ -1221,7 +1213,7 @@ void vecDNAVector::ReadOne(const string & fileName, bool bProteins, bool shortNa
 	// 200 Megs?
 	int bigChunk = 200000000;
 
-	//if (chunk > m_data.isize())
+	//if (chunk > m_data.size())
 	//m_data.resize(chunk);
 
 	DNAVector * pVec = NULL;
@@ -1261,7 +1253,7 @@ void vecDNAVector::ReadOne(const string & fileName, bool bProteins, bool shortNa
 			}
 			//cout << "In: " << tmpName << endl;
 
-			if (k >= m_data.isize())
+			if (k >= m_data.size())
 				m_data.resize(k + chunk);
 
 			pVec = &(*this)[k];
@@ -1273,7 +1265,7 @@ void vecDNAVector::ReadOne(const string & fileName, bool bProteins, bool shortNa
 
 		//cout << "Parsing: " << p << endl;
 		for (i=0; i<n; i++) {
-			if (j >= tmpVec.isize())
+			if (j >= tmpVec.size())
 				tmpVec.resize(j + bigChunk);
 			tmpVec[j] = p[i];
 			j++;
@@ -1294,12 +1286,12 @@ void vecDNAVector::ReadOne(const string & fileName, bool bProteins, bool shortNa
 	setupMap();
 }
 
-void vecDNAVector::Read(const string & fileName, svec<string> & names)
+void vecDNAVector::Read(const string & fileName, std::vector<string> & names)
 {
 	Read(fileName);
 	int i;
-	names.resize(m_data.isize());
-	for (i=0; i<m_data.isize(); i++) {
+	names.resize(m_data.size());
+	for (i=0; i<m_data.size(); i++) {
 		const char * p = (*this)[i].getName().c_str();
 		//if (strlen(p) > 0)
 		names[i] = &p[1];
@@ -1446,7 +1438,7 @@ void vecDNAVector::ReadMultiple(const vector<string> &fileNames, bool bProteins,
 				}
 				//cout << "In: " << tmpName << endl;
 
-				if (k >= m_data.isize())
+				if (k >= m_data.size())
 					m_data.resize(k + chunk);
 
 				pVec = &(*this)[k];
@@ -1458,7 +1450,7 @@ void vecDNAVector::ReadMultiple(const vector<string> &fileNames, bool bProteins,
 
 			//cout << "Parsing: " << p << endl;
 			for (i=0; i<n; i++) {
-				if (j >= tmpVec.isize())
+				if (j >= tmpVec.size())
 					tmpVec.resize(j + bigChunk);
 				tmpVec[j] = p[i];
 				j++;
@@ -1484,18 +1476,22 @@ void vecDNAVector::ReadMultiple(const vector<string> &fileNames, bool bProteins,
 }
 
 void vecDNAVector::ReverseComplement() {
-  for (int i=0; i < m_data.isize(); i++)
+  for (int i=0; i < m_data.size(); i++)
     (*this)[i].ReverseComplement();
 }
 
 void vecDNAVector::UniqueSort() {
 	map<DNAVector, string> tempNameMap;
-	for(int i = 0; i < m_data.isize(); i++)
+	for(int i = 0; i < m_data.size(); i++)
 		tempNameMap[(*this)[i]] = (*this)[i].getName();
 
   m_name2index.clear();
-  ::UniqueSort(m_data);
-  for(int i = 0; i < m_data.isize(); i++) {
+  //::UniqueSort(m_data);
+  std::sort(m_data.begin(), m_data.end()); 
+  auto last = std::unique(m_data.begin(), m_data.end());
+  m_data.erase(last, m_data.end());
+
+  for(int i = 0; i < m_data.size(); i++) {
   	m_name2index[tempNameMap[(*this)[i]]] = i;
   	tempNameMap.erase((*this)[i]);
   }
@@ -1505,12 +1501,12 @@ void vecDNAVector::UniqueSort() {
 
 void vecDNAVector::Sort() {
   map<DNAVector, string> tempNameMap;
-  for(int i = 0; i < m_data.isize(); i++)
+  for(int i = 0; i < m_data.size(); i++)
     tempNameMap[(*this)[i]] = (*this)[i].getName();
 
   m_name2index.clear();
-  ::Sort(m_data);
-  for(int i = 0; i < m_data.isize(); i++) {
+  std::sort(m_data.begin(),m_data.end());
+  for(int i = 0; i < m_data.size(); i++) {
     m_name2index[tempNameMap[(*this)[i]]] = i;
     tempNameMap.erase((*this)[i]);
   }
@@ -1792,7 +1788,7 @@ void vecDNAVector::const_DNAVectorRef::invalidate() {
 int CountNs(const DNAVector & d)
 {
   int n = 0;
-  for (int i=0; i<d.isize(); i++) {
+  for (int i=0; i<d.size(); i++) {
     if (d[i] == 'N' || d[i] == 'X')
       n++;
   }
@@ -1802,7 +1798,7 @@ int CountNs(const DNAVector & d)
 bool IsHomopolymer(const DNAVector &d, double threshold)
 {
   map<char,int> basecounts;
-  for (int i=0; i<d.isize(); ++i)
+  for (int i=0; i<d.size(); ++i)
   {
     basecounts[d[i]]++;
   }
@@ -1813,7 +1809,7 @@ bool IsHomopolymer(const DNAVector &d, double threshold)
     if (basecounts.count(mIter->first) > max)
       max = basecounts.count(mIter->first);
   
-  return ((double) max/d.isize() >= threshold);
+  return ((double) max/d.size() >= threshold);
 }
 
 
