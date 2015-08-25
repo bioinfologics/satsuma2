@@ -200,6 +200,7 @@ void MultiMatches::MergeRead(const string & file)
   int n;
 
   f.Read(n);
+  cout << "Target Sequences: "<<n<<endl;
   m_targetNames.resize(n);
   for (i=0; i<m_targetNames.size(); i++) {
     CMString s;
@@ -207,6 +208,7 @@ void MultiMatches::MergeRead(const string & file)
     m_targetNames[i] = (const char*)s;
   }
   f.Read(n);
+  cout << "Query Sequences: "<<n<<endl;
   m_queryNames.resize(n);
   for (i=0; i<m_queryNames.size(); i++) {
     CMString s;
@@ -219,6 +221,7 @@ void MultiMatches::MergeRead(const string & file)
   int len = 0;
 
   f.Read(len);
+  cout << "Alignements: "<<len<<endl;
   //cout << "Count= " << m_count << endl;
 
   //int start = m_matches.size();
@@ -324,20 +327,23 @@ void MultiMatches::Write(const string file)
   f.Write(ver);
 
   int i;
-  
-  f.Write(m_targetNames.size());
+  int n=m_targetNames.size(); 
+  f.Write(n);
   for (i=0; i<m_targetNames.size(); i++) {
     CMString s = m_targetNames[i].c_str();
     f.Write(s);
   }
-  f.Write(m_queryNames.size());
+  n=m_queryNames.size();
+  f.Write(n);
   for (i=0; i<m_queryNames.size(); i++) {
     CMString s = m_queryNames[i].c_str();
     f.Write(s);
   }
 
   //cout << "Count= " << m_count << endl;
-  f.Write(m_count);
+  n=m_count;
+  cout<<"MultiMatches dump: "<<n<<" matches"<<endl;
+  f.Write(n);
 
   for (i=0; i<m_count; i++)
     m_matches[i].Write(f);
@@ -425,25 +431,25 @@ void MultiMatches::Collapse()
     //cout << "start=" << s2.GetStartTarget() << "len=" << s2.GetLength() << endl;
 
     if (s1.GetTargetID() == s2.GetTargetID() &&
-	s1.IsRC() == s2.IsRC() &&
-	Laps(s1.GetStartTarget(), s2.GetStartTarget()) &&
-	Laps(s1.GetStartQuery(), s2.GetStartQuery())) {
+        s1.IsRC() == s2.IsRC() &&
+        Laps(s1.GetStartTarget(), s2.GetStartTarget()) &&
+        Laps(s1.GetStartQuery(), s2.GetStartQuery())) {
       if (s2.GetStartQuery() < n.GetStartQuery()) {
-	//cout << "BEFORE: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
-	//cout << "THIS:   start=" << s2.GetStartQuery() << " len=" << s2.GetLength() << endl;
-	//cout << "AND:    start=" << s1.GetStartQuery() << " len=" << s1.GetLength() << endl;
-	n.SetPos(s2.GetStartQuery(), n.GetStartTarget(), 
-		 n.GetStartQuery() + n.GetLength() - s2.GetStartQuery(),
-		 n.IsRC());
- 	//cout << "AFTER: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
-     } else {
-	//cout << "BEFORE: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
-	//cout << "THIS:   start=" << s2.GetStartQuery() << " len=" << s2.GetLength() << endl;
-	n.SetPos(n.GetStartQuery(), n.GetStartTarget(), 
-		 s2.GetStartQuery() + s2.GetLength() - n.GetStartQuery(),
-       		 n.IsRC());
-	//cout << "AFTER: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
-     }
+        //cout << "BEFORE: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
+        //cout << "THIS:   start=" << s2.GetStartQuery() << " len=" << s2.GetLength() << endl;
+        //cout << "AND:    start=" << s1.GetStartQuery() << " len=" << s1.GetLength() << endl;
+        n.SetPos(s2.GetStartQuery(), n.GetStartTarget(), 
+            n.GetStartQuery() + n.GetLength() - s2.GetStartQuery(),
+            n.IsRC());
+        //cout << "AFTER: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
+      } else {
+        //cout << "BEFORE: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
+        //cout << "THIS:   start=" << s2.GetStartQuery() << " len=" << s2.GetLength() << endl;
+        n.SetPos(n.GetStartQuery(), n.GetStartTarget(), 
+            s2.GetStartQuery() + s2.GetLength() - n.GetStartQuery(),
+            n.IsRC());
+        //cout << "AFTER: start=" << n.GetStartQuery() << " len=" << n.GetLength() << endl;
+      }
 
     } else {	
       //if (s1.IsRC())

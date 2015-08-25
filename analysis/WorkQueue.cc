@@ -142,7 +142,7 @@ void WorkQueue::receive_solutions() {
     int availb;
     ioctl(conn_sockfd, FIONREAD, &availb);
     for(int tries=0;tries<500 && availb<sizeof(t_result);tries++){
-      cout<<"Waiting for the slow slave "<< conn_clientID <<"to send the results..."<<endl;
+      //cout<<"Waiting for the slow slave "<< conn_clientID <<"to send the results..."<<endl;
       usleep(10000);
       ioctl(conn_sockfd, FIONREAD, &availb);
     }

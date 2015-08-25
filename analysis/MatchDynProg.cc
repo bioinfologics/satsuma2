@@ -593,19 +593,6 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
       //cout << "queryID=" << in.GetMatch(i).GetQueryID() << " Target id=" << in.GetMatch(i).GetTargetID() << endl;
       qualvector & q = mult_query[in.GetMatch(i).GetQueryID()];
       const SingleMatch & m = in.GetMatch(i);
-
-      /*if (m.GetQueryID() ==2  && m.GetStartTarget() > 17000000) {
-        cout << "ERROR!" << endl;
-        cout << "target=" << m.GetTargetID() << " query=" << m.GetQueryID() << " t=" << m.GetStartTarget() << " q=" << m.GetStartQuery() << " len=" << m.GetLength() << endl;
-        continue;
-        }*/
-
-
-      if (!m.GetLength()){
-        cout << "Rep score calculation for a match wit 0 size!!!." << endl;
-        cout << "Size t: " << t.size() << " " << m.GetStartTarget() << " " << m.GetLength()/2 << endl;
-        cout << "Size q: " << q.size() << " " << m.GetStartQuery() << " " << m.GetLength()/2 << endl;
-      }
       double repScore1 = GetRepeatScore(t[m.GetStartTarget() + m.GetLength()/2]);
       double repScore2 = GetRepeatScore(q[m.GetStartQuery() + m.GetLength()/2]);
       if (repScore2 < repScore1)
@@ -624,7 +611,7 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
     dp.Close(k);
 
     std::vector<SingleMatch> result;
-    dp.Chain(result);
+    dp.Chain(result);//TODO: this is doind LOTS of stuff that's not needed at this stage, repurpose!
 
 
     for (i=0; i<result.size(); i++) {
