@@ -542,6 +542,12 @@ int main( int argc, char** argv )
       cout<< "MAIN: nothing changed, skipping cycle and waiting 3 seconds"<<endl;
       sleep(3);
       main_iteration--;
+      if (slave_count==0) {
+        cout << "SATSUMA: forcing termination (slave_count==0), date and time: " << GetTimeStatic() << endl;
+        wq.close_queue();
+        wq.join();
+        return 0;
+      }
       continue;
     }
     cout << "MAIN: Collecting " << targets_to_collect << " new targets from the grid " << endl;
@@ -555,7 +561,6 @@ int main( int argc, char** argv )
             newTargets[i].QueryLast(),
             newTargets[i].IsFast());
     }
-
     //TODO: ALG: check CONVERGENCE condition
     cout<< "MAIN: STATUS: iteration, slaves_processed, new_matches, slave_to_match_relation, targets_needed, targets_collected"<<endl;
     cout<< "MAIN: STATUS: "<< main_iteration << ", " \

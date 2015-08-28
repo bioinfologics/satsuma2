@@ -40,19 +40,24 @@ double GetHighMaxPenalty()
   return 150;
 }
 
-double TransPenalty(int startT1, int startQ1, bool rc1, int startT2, int startQ2, bool rc2) 
+double TransPenalty(const int & startT1, const int & startQ1, const bool & rc1, const int & startT2, const int & startQ2, const bool & rc2) 
 {
   double pen = 0.;
 
   double expect = (double)(startT2 - startT1);
   double observe = (double)(startQ2 - startQ1);
 
-  double sigma = sqrt(expect)/10.;
+  /*double sigma = sqrt(expect)/10.;
 
   sigma -= 100;
   if (sigma < 0)
     sigma = 0;
-
+  */
+  double sigma=0;
+  //Expect is always positive, only calculate sigma>0
+  if ( expect > 1000000){ 
+    sigma=sqrt(expect)/10.-100;
+  }
   if (rc1 != rc2) { 
     pen = RC_PENALTY;
   }
@@ -201,94 +206,44 @@ class MatchDynProg
 
 void MatchDynProg::Chain(std::vector<SingleMatch> & out)
 {
-  //cout << "Sorting..." << endl;
   sort(m_matches.begin(),m_matches.end());
-  //cout << "# of matches: " << m_matches.size() << endl;
-  if (m_matches.size() == 0)
-    return;
-
+  if (m_matches.size() == 0) return;
 
   int i, j;
   int la_limit = 2000;
   m_matches[0].Update(0., -1);
+
   for (i=0; i<m_matches.size(); i++) {
     SingleMatchDP & one = m_matches[i];
-
-    //if (i % 1000 == 0)
-    //  cout << "Processed: " << i << endl;
 
     double skipScore = 0.;
     int fed = 0;
     for (j=i+1; j<m_matches.size(); j++) {
       SingleMatchDP & two = m_matches[j];
-      if (two.GetStartTarget() - one.GetStartTarget() > m_laDist
-          && fed > 10) {
-        //cout << "Forward break: " << j - i << endl;
+      if (two.GetStartTarget() - one.GetStartTarget() > m_laDist && fed > 10)
         break;
-      }
       if (j-i > la_limit)
         break;
 
-      double trans = GetHighMaxPenalty();
       fed++;
+      double trans = GetHighMaxPenalty();
       if (one.GetQueryID() == two.GetQueryID()) {
-        trans = TransPenalty(one.GetStartTarget(), 
-            one.GetStartQuery(), 
-            one.IsRC(), 
-            two.GetStartTarget(), 
-            two.GetStartQuery(), 
-            two.IsRC());
+        trans = TransPenalty(one.GetStartTarget(), one.GetStartQuery(), one.IsRC(), two.GetStartTarget(), two.GetStartQuery(), two.IsRC());
       }
 
-
-
       trans += skipScore;
-
-      //cout << "Dist=" << j-i << " score=" << skipScore << endl;
-
       skipScore += two.GetRepeatScore();
 
-      //if (one.GetStartTarget() < 200000 && two.GetQueryID() != 0)
-      //continue;
       two.Update(one.GetScore() + trans, i);
-
     }
   }
-  //cout << "Dyn prog done, traceback." << endl;
 
   i = m_matches.size()-1;
   while (i >= 0) {
     out.push_back(m_matches[i]);
-    //cout << "Pos=" << m_matches[i].GetStartTarget()  << " score=" << m_matches[i].GetScore() << " query=" << m_matches[i].GetQueryID();
-    //if (m_matches[i].IsRC())
-    //  cout << " rc" << endl;
-    //else
-    //  cout << " fw" << endl;
-
     i = m_matches[i].GetBack();    
-    //=============================================
-    //m_matches[i].SetQueryTargetID(-1, -1, 0);
   }
-
-  //cout << "NOT Adding forced keepers." << endl;
-  int keep = 0;
-
-  //=============================================
-  //for (i=0; i<m_matches.size(); i++) {
-  //// We got this one already!
-  //  if (m_matches[i].GetTargetID() == -1)
-  //  continue;
-  // if (m_matches[i].GetLength() > m_minKeepLen) {
-  //   out.push_back(m_matches[i]);
-  //   keep++;
-  //   continue;
-  // }
-  // if (m_matches[i].GetIdentity() > m_minKeepIdent) {
-  //   out.push_back(m_matches[i]);
-  //   keep++;
-  // }
-  //}
-  //cout << "Forced in " << keep << " matches." << endl;
+  
   sort(out.begin(),out.end());
 }
 
@@ -557,22 +512,7 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
 
     //cout << "First=" << firstI[j] << " Last=" << lastI[j] << endl;
 
-    if (last == -1)
-      first = 0;
-
-    /*
-       for (i=0; i<in.GetMatchCount(); i++) {
-       const SingleMatch & m = in.GetMatch(i);
-    //if (m.GetQueryID() < 0)
-    //continue;
-    if (m.GetTargetID() != j)
-    continue;
-    if (first == -1)
-    first = i;
-    last = i;
-    }
-    */
-
+    if (last == -1) first = 0;
 
     MatchDynProg dp(last - first + 1);
 
@@ -617,13 +557,6 @@ bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in)
     for (i=0; i<result.size(); i++) {
       const SingleMatch & m = result[i];
       out.AddMatch(m);
-      //cout << "query id: " << m.GetQueryID() << " start target: " << m.GetStartTarget() << " start query: " << m.GetStartQuery();
-      //if (m.IsRC()) {
-      //	cout << " rc";
-      //} else {
-      //	cout << " fw";
-      //}
-      //cout << endl;
     }
   }
   cout << "Dynprog'ing... DONE" << endl;
