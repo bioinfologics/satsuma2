@@ -16,7 +16,7 @@
 #define PRETTY_INFINITE 999999999999999.;
 
 #define RC_PENALTY 20.
-#define MAX_PENALTY 20
+#define MAX_PENALTY 40
 
 
 typedef std::vector<char> qualvector;
@@ -42,10 +42,9 @@ double GetHighMaxPenalty()
 
 double TransPenalty(const int & startT1, const int & startQ1, const bool & rc1, const int & startT2, const int & startQ2, const bool & rc2) 
 {
-  double pen = 0.;
-
-  double expect = (double)(startT2 - startT1);
-  double observe = (double)(startQ2 - startQ1);
+  if (rc1!=rc2) return RC_PENALTY;
+  double expect = (startT2 - startT1);
+  double observe = (startQ2 - startQ1);
 
   /*double sigma = sqrt(expect)/10.;
 
@@ -58,10 +57,6 @@ double TransPenalty(const int & startT1, const int & startQ1, const bool & rc1, 
   if ( expect > 1000000){ 
     sigma=sqrt(expect)/10.-100;
   }
-  if (rc1 != rc2) { 
-    pen = RC_PENALTY;
-  }
-
   if (rc1 == true && rc2 == true) {
     observe = -observe;
   }
@@ -95,7 +90,7 @@ double TransPenalty(const int & startT1, const int & startQ1, const bool & rc1, 
      cout << " pen+p=" << pen+p << endl;
      */
 
-  return pen + p;
+  return p;
 }
 
 double GetRepeatScore(int v) {

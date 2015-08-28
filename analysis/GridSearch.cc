@@ -22,8 +22,7 @@ GridSearch::GridSearch(int size, int blocks)
 
 
 
-void GridSearch::SetUp(const vecDNAVector & target, 
-    const vecDNAVector & query)
+void GridSearch::SetUp(const vecDNAVector & target, const vecDNAVector & query)
 {
   int i, j;
 
@@ -76,58 +75,43 @@ void GridSearch::SetUp(const vecDNAVector & target,
     last = 0;
     for (j=0; j<m_targetChunks.size(); j++) {
       if (m_targetChunks[j].GetName() == n) {
-        //	m_targetSeq[i].SetBlocks(first, j-1);
-        //	break;
-        //}
         if (first == -1)
           first = j;
       last = j;
+      }
     }
+    m_targetSeq[i].SetBlocks(first, last);
+    //j--;
   }
-  m_targetSeq[i].SetBlocks(first, last);
-  //j--;
-}
 
-j = 0;
-first = -1;
-last = 0;
-for (i=0; i<m_querySeq.size(); i++) {
-  const string & n = m_querySeq[i].Name();
+  j = 0;
   first = -1;
   last = 0;
-  for (j=0; j<m_queryChunks.size(); j++) {
-    if (m_queryChunks[j].GetName() == n) {
-      if (first == -1)
-        first = j;
-      last = j;
+  for (i=0; i<m_querySeq.size(); i++) {
+    const string & n = m_querySeq[i].Name();
+    first = -1;
+    last = 0;
+    for (j=0; j<m_queryChunks.size(); j++) {
+      if (m_queryChunks[j].GetName() == n) {
+        if (first == -1)
+          first = j;
+        last = j;
+      }
     }
+    m_querySeq[i].SetBlocks(first, last);
+
   }
-  m_querySeq[i].SetBlocks(first, last);
 
-  //    for (; j<m_queryChunks.size(); j++) {
-  //if (m_queryChunks[j].GetName() != n || j+1 == m_queryChunks.size()) {
-  //m_querySeq[i].SetBlocks(first, j-1);
-  //break;
-  //}
-  //if (first == -1)
-  //first = j;
-  //}
-  //j--;
-}
+  m_matrix.Setup(m_targetChunks.size(), m_queryChunks.size(), m_blocks, m_blocks);
+  m_vertical.resize(m_queryChunks.size(), 0);
+  m_horizontal.resize(m_targetChunks.size(), 0);
 
+  m_repTrack.Setup(target.size(), query.size());
 
-m_matrix.Setup(m_targetChunks.size(), m_queryChunks.size(), m_blocks, m_blocks);
-
-
-m_vertical.resize(m_queryChunks.size(), 0);
-m_horizontal.resize(m_targetChunks.size(), 0);
-
-m_repTrack.Setup(target.size(), query.size());
-
-for (i=0; i<target.size(); i++)
-m_repTrack.SetTargetSize(i, target[i].size());
-for (i=0; i<query.size(); i++)
-m_repTrack.SetQuerySize(i, query[i].size());
+  for (i=0; i<target.size(); i++)
+    m_repTrack.SetTargetSize(i, target[i].size());
+  for (i=0; i<query.size(); i++)
+    m_repTrack.SetQuerySize(i, query[i].size());
 
 }
 
