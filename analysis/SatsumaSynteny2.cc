@@ -543,8 +543,11 @@ int main( int argc, char** argv )
       sleep(3);
       main_iteration--;
       if (slave_count==0) {
-        cout << "SATSUMA: forcing termination (slave_count==0), date and time: " << GetTimeStatic() << endl;
+        //This is only fo testing purposes (optimization and benchmarking)
+        cout << "SATSUMA: forcing collect and termination (slave_count==0), date and time: " << GetTimeStatic() << endl;
         wq.close_queue();
+        std::vector<GridTarget> newTargets;
+        int realTargets = grid.CollectTargets(newTargets, 5000);
         wq.join();
         return 0;
       }
