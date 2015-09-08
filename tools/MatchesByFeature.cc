@@ -39,6 +39,7 @@ class MatchesByFeatureTracker{
     std::vector<uint64_t> process_file(int file_id);//processes a single file, returns results in the results vector, deep copies the chromosomes
     std::vector<std::string> features;
     std::vector<std::string> matches_filenames;
+    std::string gff3_filename;
     std::vector<std::vector<uint64_t>> results;
     std::vector<uint64_t> feature_totals;
     std::map<std::string,Chromosome> chromosomes;
@@ -49,6 +50,7 @@ MatchesByFeatureTracker::MatchesByFeatureTracker(char * _gff3_filename, std::vec
   std::string line,sline[5];
   features=_features;
   matches_filenames=_matches_filenames;
+  gff3_filename=_gff3_filename;
   //TODO: copies features
   //TODO: initializes Chromosomes
   //takes a gff file, loads a uint8 with bit-field values for presence for up to 8 features being present or not per position.
@@ -74,6 +76,7 @@ MatchesByFeatureTracker::MatchesByFeatureTracker(char * _gff3_filename, std::vec
   
   infile.open(_gff3_filename);
   std::cout<<"Loading features... "<<std::flush;
+  /*
   while (getline (infile,line)) {
     if ('#'==line[0]) continue;
     std::stringstream ss(line);
@@ -85,6 +88,25 @@ MatchesByFeatureTracker::MatchesByFeatureTracker(char * _gff3_filename, std::vec
       for (auto i=0;i<features.size();i++) {
         if (features[i]==sline[2]) {
           for (auto j=atol(sline[3].c_str());j <= atol(sline[4].c_str()); j++)
+            c->second.featuresv[j-c->second.start]|=(1<<i);
+          break;
+        }
+      }
+    }
+  }*/
+  while (getline (infile,line)) {
+    if ('#'==line[0]) continue;
+    std::stringstream ss(line);
+    for (auto i=0; i<5; i++){
+      ss>>sline[i];
+    }
+    auto start=atol(sline[3].c_str());
+    auto end=atol(sline[4].c_str());
+    std::map<std::string,Chromosome>::iterator c=chromosomes.find(sline[0]);
+    if ( chromosomes.end() != c ){//XXX: this "eliminates" hanging-in-the-air features
+      for (auto i=0;i<features.size();i++) {
+        if (features[i]==sline[2]) {
+          for (auto j=start;j <= end; j++)
             c->second.featuresv[j-c->second.start]|=(1<<i);
           break;
         }
@@ -104,9 +126,7 @@ MatchesByFeatureTracker::MatchesByFeatureTracker(char * _gff3_filename, std::vec
   for (auto i=0;i<features.size();i++){
     feature_totals[i]=0;
     for (auto j=0;j<128;j++){
-      if ((1<<i)&j) {
-        if (128&j) feature_totals[i]+=t[j];
-      }
+      if ((1<<i)&j) feature_totals[i]+=t[j];
     }
   }
   feature_totals[features.size()]=t[0];
@@ -118,7 +138,6 @@ MatchesByFeatureTracker::MatchesByFeatureTracker(char * _gff3_filename, std::vec
 std::vector<uint64_t> MatchesByFeatureTracker::process_file(int _id){
   //TODO: DEEP COPY of the chromosomes into chrom
   std::map<std::string,Chromosome> chrom=chromosomes;
-  std::cout<<"Loading alignement coords... "<<std::flush;
   std::ifstream infile;
   std::string line,sline[5];
   infile.open( matches_filenames[_id].c_str());
@@ -126,16 +145,16 @@ std::vector<uint64_t> MatchesByFeatureTracker::process_file(int _id){
     std::stringstream ss(line);
     for (auto i=0; i<3; i++) ss>>sline[i];
     std::map<std::string, Chromosome>::iterator c=chrom.find(sline[0]);
+    auto start=atol(sline[1].c_str());
+    auto end=atol(sline[2].c_str());
     if ( chrom.end() != c ){//XXX: this "eliminates" hanging-in-the-air features
-      for (auto j=atol(sline[1].c_str());j < atol(sline[2].c_str()); j++)///TODO: check it's 0-based in-between
+      for (auto j=start;j < end; j++)///TODO: check it's 0-based in-between
         c->second.featuresv[j]|=128;
     }
   }
-  std::cout<<"DONE!"<<std::endl;
   infile.close();
   //prints a stat for covered% for each of the features across the genome
   uint64_t h[256];
-  //std::cout<<"Counting bp coverage... "<<std::flush;
   for (auto i=0;i<256;i++) h[i]=0;//better safe than sorry
   for (auto & c : chrom){
     uint8_t * bc_data=c.second.featuresv.data();
@@ -144,9 +163,6 @@ std::vector<uint64_t> MatchesByFeatureTracker::process_file(int _id){
     }
     //std::cout<<"+"<<std::flush;
   }
-  //std::cout<<"DONE!"<<std::endl;
-  //for (auto i=0;i<256;i++) std::cout <<i<<": "<<h[i]<<std::endl;
-  //std::cout<<"Breakdown by feature:"<<std::endl;
   std::vector<uint64_t> covered;
   covered.resize(features.size()+1);
   for (auto i=0;i<features.size();i++){
@@ -161,8 +177,10 @@ std::vector<uint64_t> MatchesByFeatureTracker::process_file(int _id){
   return covered;
 }
 void MatchesByFeatureTracker::process_all_files(int np){
+  std::cout<<"Loading alignement coords... "<<std::flush;
   for (auto i=0; i<matches_filenames.size(); i++)
     results[i]=process_file(i);
+  std::cout<<"DONE!"<<std::endl;
 
 }
 void MatchesByFeatureTracker::print_results(){
@@ -175,13 +193,16 @@ void MatchesByFeatureTracker::print_results(){
     for (auto r: results[i]) std::cout<<","<<r;
     std::cout<<std::endl;
   }
+  std::cout<<"TOTAL,"<<gff3_filename;
+  for (auto j=0; j<feature_totals.size();++j) std::cout<<","<<feature_totals[j];
+  std::cout<<std::endl;
   std::cout<<std::endl<<std::endl<<"-- % BP --"<<std::endl;
   std::cout<<"order,filename";
   for (auto f: features) std::cout<<","<<f;
   std::cout<<",None"<<std::endl;
   for (auto i=0;i<results.size();i++){
     std::cout<<i<<","<<matches_filenames[i];
-    for (auto j=0; j< results[i].size();++j) std::cout<<","<<((double) results[i][j])/feature_totals[j];
+    for (auto j=0; j<results[i].size();++j) std::cout<<","<<((double) results[i][j])/feature_totals[j];
     std::cout<<std::endl;
   }
 }
