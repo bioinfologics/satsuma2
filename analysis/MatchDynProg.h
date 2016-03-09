@@ -1,7 +1,7 @@
 #ifndef MATCHDYNPROG_H_
 #define MATCHDYNPROG_H_
 
-#include "analysis/SequenceMatch.h"
+#include "SequenceMatch.h"
 
 
 bool RunMatchDynProg(MultiMatches & out, const MultiMatches & in);

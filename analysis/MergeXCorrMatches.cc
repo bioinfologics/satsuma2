@@ -3,15 +3,15 @@
 //#endif
 
 
-#include "analysis/DNAVector.h"
+#include "DNAVector.h"
 
 
 #include <string.h>
 
-#include "base/CommandLineParser.h"
-#include "analysis/CrossCorr.h"
-#include "analysis/SequenceMatch.h"
-#include "analysis/XCorrDynProg.h"
+#include "../base/CommandLineParser.h"
+//#include "CrossCorr.h"
+#include "SequenceMatch.h"
+#include "XCorrDynProg.h"
 
 
 //--------------------------------------------------------------------------------

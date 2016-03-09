@@ -2,8 +2,8 @@
 #define GRIDSEARCH_H_
 
 
-#include "analysis/SeqChunk.h"
-#include "analysis/SequenceMatch.h"
+#include "SeqChunk.h"
+#include "SequenceMatch.h"
 
 
 class GridSequence

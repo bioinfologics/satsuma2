@@ -5,9 +5,9 @@
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
 #include <cstdlib>
-#include "kmatch/matchresult.h"
+#include "matchresult.h"
 
-#include "kmatch/KMatch.h"
+#include "KMatch.h"
 #include <sys/time.h>
 #include <thread>
 #include <functional>

@@ -2,18 +2,18 @@
 #define NDEBUG
 #endif
 
-#include "analysis/DNAVector.h"
+#include "DNAVector.h"
 #include <string>
 #include <unistd.h>
-#include "base/CommandLineParser.h"
-#include "analysis/CrossCorr.h"
-#include "analysis/SequenceMatch.h"
-#include "analysis/SeqChunk.h"
-#include "analysis/AlignProbability.h"
-#include "analysis/MatchDynProg.h"
-#include "analysis/WorkQueue.h"
-#include "analysis/ProbTable.h"
-#include "util/mutil.h"
+#include "../base/CommandLineParser.h"
+#include "CrossCorr.h"
+#include "SequenceMatch.h"
+#include "SeqChunk.h"
+#include "AlignProbability.h"
+#include "MatchDynProg.h"
+#include "WorkQueue.h"
+#include "ProbTable.h"
+#include "../util/mutil.h"
 #include <queue>
 #include <thread>
 #include <mutex>

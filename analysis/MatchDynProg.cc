@@ -7,9 +7,9 @@
 #include <string>
 #include <math.h>
 #include <vector>
-#include "base/CommandLineParser.h"
-#include "analysis/SequenceMatch.h"
-#include "analysis/MatchDynProg.h"
+#include "../base/CommandLineParser.h"
+#include "SequenceMatch.h"
+#include "MatchDynProg.h"
 
 
 

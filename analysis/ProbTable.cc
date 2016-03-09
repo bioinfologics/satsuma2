@@ -1,4 +1,4 @@
-#include "analysis/ProbTable.h"
+#include "ProbTable.h"
 
 ProbTable::ProbTable() {
   m_size = 100000;

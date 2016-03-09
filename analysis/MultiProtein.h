@@ -1,7 +1,7 @@
 #ifndef MULTIPROTEIN
 #define MULTIPROTEIN
 
-#include "analysis/DNAVector.h"
+#include "DNAVector.h"
 
 class CMReadFileStream;
 class CMWriteFileStream;

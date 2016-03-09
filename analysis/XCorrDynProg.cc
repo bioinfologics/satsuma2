@@ -2,10 +2,10 @@
 //#define NDEBUG
 //#endif
 
-#include "analysis/XCorrDynProg.h"
+#include "XCorrDynProg.h"
 #include <math.h>
-#include "analysis/Blosum.h"
-#include "analysis/MultiProtein.h"
+#include "Blosum.h"
+#include "MultiProtein.h"
 
 MatchDynProg::MatchDynProg(int targetStart, int targetLen) 
 {

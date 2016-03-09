@@ -2,10 +2,10 @@
 //#define NDEBUG
 //#endif
 
-#include "analysis/DNAVector.h"
-#include "base/FileParser.h"
-#include "util/mutil.h"
-#include "analysis/Coordinate.h"
+#include "DNAVector.h"
+#include "../base/FileParser.h"
+#include "../util/mutil.h"
+#include "Coordinate.h"
 
 
 #define ONE_THIRD 1./3.

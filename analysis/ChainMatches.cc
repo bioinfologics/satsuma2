@@ -6,9 +6,9 @@
 
 #include <string>
 
-#include "base/CommandLineParser.h"
-#include "analysis/MatchDynProg.h"
-#include "analysis/SequenceMatch.h"
+#include "../base/CommandLineParser.h"
+#include "MatchDynProg.h"
+#include "SequenceMatch.h"
 
 //================================================================
 //================================================================

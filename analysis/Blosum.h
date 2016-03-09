@@ -1,7 +1,7 @@
 #ifndef BLOSUM_H
 #define BLOSUM_H
 
-#include "analysis/DNAVector.h"
+#include "DNAVector.h"
 
 const int blosum_table[] = 
 {

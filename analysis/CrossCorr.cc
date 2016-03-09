@@ -5,11 +5,11 @@
 
 
  
-#include "analysis/CrossCorr.h"
-#include "analysis/DNAVector.h"
-#include "analysis/CodonTranslate.h"
-#include "extern/RealFFT/FFTReal.hpp"
-#include "analysis/Blosum.h"
+#include "CrossCorr.h"
+#include "DNAVector.h"
+#include "CodonTranslate.h"
+#include "../extern/RealFFT/FFTReal.hpp"
+#include "Blosum.h"
 #include <math.h>
 
 

@@ -5,7 +5,7 @@
 #endif
 
 #include <math.h>
-#include "analysis/DNAVector.h"
+#include "DNAVector.h"
 
 class ProbTable
 {

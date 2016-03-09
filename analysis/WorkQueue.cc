@@ -3,7 +3,7 @@
 #endif
 
 
-#include "analysis/WorkQueue.h"
+#include "WorkQueue.h"
 
 
 WorkQueue::WorkQueue(int _minLen, string _sQuery, int _queryChunk, string _sTarget, int _targetChunk, double _minProb, double _sigCutoff, bool _probtable, int _slave_count, int _threads){

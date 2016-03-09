@@ -2,8 +2,8 @@
 #define XCORRDYNPROG_H
 
 
-#include "analysis/SequenceMatch.h"
-#include "analysis/DNAVector.h"
+#include "SequenceMatch.h"
+#include "DNAVector.h"
 #include <math.h>
 #include <algorithm>
 

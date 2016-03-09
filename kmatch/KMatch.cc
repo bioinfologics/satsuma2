@@ -1,7 +1,7 @@
-#include "kmatch/KMatch.h"
+#include "KMatch.h"
 #include <sys/time.h>
 #include <thread>
-#include <functional>
+//#include <functional>
 
 void timed_log(std::string s){
   struct timeval tp;

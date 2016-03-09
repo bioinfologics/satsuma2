@@ -3,8 +3,8 @@
 #define NDEBUG
 #endif
 
-#include "analysis/AlignProbability.h"
-#include "analysis/DNAVector.h"
+#include "AlignProbability.h"
+#include "DNAVector.h"
 
 #include <math.h>
 

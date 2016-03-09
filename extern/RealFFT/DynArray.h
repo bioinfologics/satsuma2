@@ -89,7 +89,7 @@ private:
 
 
 
-#include	"extern/RealFFT/DynArray.hpp"
+#include	"DynArray.hpp"
 
 
 

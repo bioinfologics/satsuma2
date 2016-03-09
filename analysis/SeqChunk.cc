@@ -2,8 +2,8 @@
 #define NDEBUG
 #endif
 
-#include "analysis/SeqChunk.h"
-#include "util/mutil.h"
+#include "SeqChunk.h"
+#include "../util/mutil.h"
 
 
 void SeqChunkSelect::Read(const string & file)

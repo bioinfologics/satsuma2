@@ -1,7 +1,7 @@
 #ifndef SEQCHUNK_H_
 #define SEQCHUNK_H_
 
-#include "analysis/DNAVector.h"
+#include "DNAVector.h"
 
 
 

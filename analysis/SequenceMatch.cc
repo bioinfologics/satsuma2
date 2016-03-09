@@ -1,7 +1,7 @@
-#include "analysis/SequenceMatch.h"
-#include "util/mutil.h"
+#include "SequenceMatch.h"
+#include "../util/mutil.h"
 
-#include "base/FileParser.h"
+#include "../base/FileParser.h"
 
 
 

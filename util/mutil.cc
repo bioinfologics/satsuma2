@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#include "util/mutil.h"
+#include "../util/mutil.h"
 #include <stdlib.h>
 #include <iostream>
 
@@ -1317,12 +1317,12 @@ void CMString::toLower()
 	    if (m_pData[i] >= 'A' && m_pData[i] <= 'Z') {
 	      m_pData[i] += 0x20;
 		}	else {
-	      if (m_pData[i] == 'Ä')
-		    m_pData[i] = 'ä';
-	      if (m_pData[i] == 'Ü')
-		    m_pData[i] = 'ü';
-	      if (m_pData[i] == 'Ö')
-		    m_pData[i] = 'ö';
+	      if (m_pData[i] == 'ï¿½')
+		    m_pData[i] = 'ï¿½';
+	      if (m_pData[i] == 'ï¿½')
+		    m_pData[i] = 'ï¿½';
+	      if (m_pData[i] == 'ï¿½')
+		    m_pData[i] = 'ï¿½';
 		}		 
 	    //__mccl_tolwr(m_pData);
 	  } 

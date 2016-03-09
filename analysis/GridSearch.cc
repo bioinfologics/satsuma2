@@ -3,7 +3,7 @@
 #endif
 
 
-#include "analysis/GridSearch.h"
+#include "GridSearch.h"
 
 
 

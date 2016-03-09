@@ -7,16 +7,17 @@
 
 #include <string.h>
 #include <unistd.h>
-#include "base/CommandLineParser.h"
-#include "analysis/SequenceMatch.h"
-#include "analysis/GridSearch.h"
-#include "analysis/SeqChunk.h"
-#include "analysis/MatchDynProg.h"
-#include "util/SysTime.h"
+#include "../base/CommandLineParser.h"
+#include "SequenceMatch.h"
+#include "GridSearch.h"
+#include "SeqChunk.h"
+#include "MatchDynProg.h"
+#include "../util/SysTime.h"
 #include <math.h>
 #include <netinet/in.h> 
 #include <sys/socket.h>
-#include "analysis/WorkQueue.h"
+#include "WorkQueue.h"
+#include "DNAVector.h"
 #define POSITION_CHR_CNST 10000000000L
 
 class SyntenyInterpolator
@@ -463,12 +464,12 @@ int main( int argc, char** argv )
     matches.Collapse();
   }
   else {
-  cout << "SATSUMA: Processing  KMATCH results, date and time: " << GetTimeStatic() << endl;
-  unsigned long int new_matches_count;
-  wq.collect_new_matches(matches); //matches.Read(seedFile);
-  matches.Sort();
-  matches.Collapse();
-  matches.LengthFilter(min_seed_length);//XXX:hardcoded lenght filter-->terrible!!!
+    cout << "SATSUMA: Processing  KMATCH results, date and time: " << GetTimeStatic() << endl;
+    unsigned long int new_matches_count;
+    wq.collect_new_matches(matches); //matches.Read(seedFile);
+    matches.Sort();
+    matches.Collapse();
+    matches.LengthFilter(min_seed_length);//XXX:hardcoded lenght filter-->terrible!!!
   }
   //=============================================================
 

@@ -4,9 +4,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "analysis/SequenceMatch.h"
-#include "analysis/SeqChunk.h"
-#include "util/SysTime.h"
+#include "SequenceMatch.h"
+#include "SeqChunk.h"
+#include "../util/SysTime.h"
 #include <math.h>
 #include <thread>
 #include <mutex>

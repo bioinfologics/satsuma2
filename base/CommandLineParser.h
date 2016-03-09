@@ -8,8 +8,8 @@
 #include <set>
 #include <stdlib.h>
 
-#include "base/StringUtil.h"
-#include "base/FileParser.h"
+#include "StringUtil.h"
+#include "FileParser.h"
 
 using namespace std;
 

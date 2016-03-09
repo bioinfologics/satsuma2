@@ -8,7 +8,7 @@
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
 #include <cstdlib>
-#include "kmatch/matchresult.h"
+#include "matchresult.h"
 
 #define KMATCH_MAX_FREQ 4
 #define KMATCH_NUC_A 0
