@@ -288,7 +288,7 @@ void WorkQueue::results_from_file(const char * filename, const std::vector<SeqCh
   fclose(rf);
 }
 
-void WorkQueue::setup_queue(){
+void WorkQueue::setup_queue(const int mem){
   //TODO: avoid all hardcoding and support PBS/LSF
   //spawns each slave with its slave_id
   start_listener();  
@@ -315,7 +315,7 @@ void WorkQueue::setup_queue(){
     cout<< "Launching slave: " << endl << "  " << cmd.str() <<endl;
 
     sh_cmd.str("");
-    int mem = 100;  //TODO: JW what to do here? - need to correct below
+    //int mem = 100;  //TODO: JW what to do here?
     sh_cmd << "sh " << std::getenv("SATSUMA2_PATH") << "/satsuma_run.sh " << std::getenv("PWD") << " \"" << cmd.str() << "\" " << to_string(threads);
     sh_cmd << " " << to_string(mem) << " SL" << i+1;
 

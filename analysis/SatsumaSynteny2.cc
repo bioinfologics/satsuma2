@@ -252,7 +252,7 @@ int main( int argc, char** argv )
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
   commandArg<int> threadsCmmd("-threads","number of working threads per processing slave", 1);
   commandArg<int> kmmemCmmd("-km_mem","memory required for kmatch (Gb)",100);  // TODO: default to mammal genome requirement
-  //commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
+  commandArg<int> slmemCmmd("-sl_mem","memory requirement for slaves (Gb)", 100); // TODO: default to mammal genome requirement
   commandArg<int> perCmmd("-m","number of jobs per block", 4);
   commandArg<bool> refineNotCmmd("-do_refine","refinement steps", false);
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.99999);
@@ -277,7 +277,7 @@ int main( int argc, char** argv )
   P.registerArg(lIntCmmd);
   P.registerArg(tChunkCmmd);
   P.registerArg(qChunkCmmd);
-  //P.registerArg(lsfCmmd);
+  P.registerArg(slmemCmmd);
   P.registerArg(refineNotCmmd);
   P.registerArg(probCmmd);
   P.registerArg(cutoffCmmd);
@@ -312,7 +312,7 @@ int main( int argc, char** argv )
   int slave_count = P.GetIntValueFor(slavesCmmd);
   int threads_per_slave = P.GetIntValueFor(threadsCmmd);
   int kmatch_mem = P.GetIntValueFor(kmmemCmmd);
-  //bool bLSF = P.GetBoolValueFor(lsfCmmd);
+  int slave_mem = P.GetIntValueFor(slmemCmmd);
   double minProb = P.GetDoubleValueFor(probCmmd);
   bool bNoRef = P.GetBoolValueFor(refineNotCmmd);
   double sigCutoff = P.GetDoubleValueFor(cutoffCmmd);
@@ -481,7 +481,7 @@ int main( int argc, char** argv )
   
   
   cout << "SATSUMA: Launching slaves, date and time: " << GetTimeStatic() << endl;
-  wq.setup_queue();//XXX totally wrong to name the slaves count like that!
+  wq.setup_queue(slave_mem);   //XXX totally wrong to name the slaves count like that!
   //ALG: processing the seeds. Why is this different to just process matches? (besides the filter)
   
   if (old_seedFile != "") {
