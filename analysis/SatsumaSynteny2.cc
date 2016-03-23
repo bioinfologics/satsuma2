@@ -10,14 +10,14 @@
 #include "../base/CommandLineParser.h"
 #include "SequenceMatch.h"
 #include "GridSearch.h"
-#include "SeqChunk.h"
+//#include "SeqChunk.h"
 #include "MatchDynProg.h"
 #include "../util/SysTime.h"
-#include <math.h>
-#include <netinet/in.h> 
-#include <sys/socket.h>
+//#include <math.h>
+//#include <netinet/in.h>
+//#include <sys/socket.h>
 #include "WorkQueue.h"
-#include "DNAVector.h"
+//#include "DNAVector.h"
 #define POSITION_CHR_CNST 10000000000L
 
 class SyntenyInterpolator
@@ -230,7 +230,11 @@ class TargetCoverageTracker{
   
 };
 
-
+std::string getEnvVar( std::string const & key )
+{
+  char * val = getenv( key.c_str() );
+  return val == NULL ? std::string("") : std::string(val);
+}
 
 //================================================================
 //================================================================
@@ -247,16 +251,17 @@ int main( int argc, char** argv )
   commandArg<int> tChunkCmmd("-t_chunk","target chunk size", 4096);
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
   commandArg<int> threadsCmmd("-threads","number of working threads per processing slave", 1);
-  commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
+  commandArg<int> kmmemCmmd("-km_mem","memory required for kmatch (Gb)",100);  // TODO: default to mammal genome requirement
+  //commandArg<bool> lsfCmmd("-lsf","submit jobs to LSF", false);
   commandArg<int> perCmmd("-m","number of jobs per block", 4);
-  commandArg<bool> refineNotCmmd("-do_refine","refinment steps", false);
+  commandArg<bool> refineNotCmmd("-do_refine","refinement steps", false);
   commandArg<double> probCmmd("-min_prob","minimum probability to keep match", 0.99999);
   commandArg<double> cutoffCmmd("-cutoff","signal cutoff", 1.8);
   commandArg<bool> probtableCmmd("-prob_table","approximate match prob using a table lookup in slaves", false);
   commandArg<int> minmatchesCmmd("-min_matches","minimum matches per target to keep iterating", 20);
   commandArg<string> seedCmmd("-seed","loads seeds and runs from there (kmatch files prefix)", "");
   commandArg<int> max_kmatch_freqCmmd("-max_seed_kmer_freq","maximum frequency for kmatch seed kmers", 1);
-  commandArg<int> min_seedCmmd("-min_seed_length","minimun length for kmatch seeds (after collapsing)", 24);
+  commandArg<int> min_seedCmmd("-min_seed_length","minimum length for kmatch seeds (after collapsing)", 24);
   commandArg<string> old_seedCmmd("-old_seed","loads seeds and runs from there (xcorr*data)", "");
   commandArg<int> blockPixelCmmd("-pixel","number of blocks per pixel", 24);
   commandArg<bool> filterCmmd("-nofilter","do not pre-filter seeds (slower runtime)", false);
@@ -272,7 +277,7 @@ int main( int argc, char** argv )
   P.registerArg(lIntCmmd);
   P.registerArg(tChunkCmmd);
   P.registerArg(qChunkCmmd);
-  P.registerArg(lsfCmmd);
+  //P.registerArg(lsfCmmd);
   P.registerArg(refineNotCmmd);
   P.registerArg(probCmmd);
   P.registerArg(cutoffCmmd);
@@ -281,6 +286,7 @@ int main( int argc, char** argv )
   P.registerArg(perCmmd);
   P.registerArg(slavesCmmd);
   P.registerArg(threadsCmmd);
+  P.registerArg(kmmemCmmd);
   P.registerArg(seedCmmd);
   P.registerArg(min_seedCmmd);
   P.registerArg(max_kmatch_freqCmmd);
@@ -305,7 +311,8 @@ int main( int argc, char** argv )
   int perBlock = P.GetIntValueFor(perCmmd);
   int slave_count = P.GetIntValueFor(slavesCmmd);
   int threads_per_slave = P.GetIntValueFor(threadsCmmd);
-  bool bLSF = P.GetBoolValueFor(lsfCmmd);
+  int kmatch_mem = P.GetIntValueFor(kmmemCmmd);
+  //bool bLSF = P.GetBoolValueFor(lsfCmmd);
   double minProb = P.GetDoubleValueFor(probCmmd);
   bool bNoRef = P.GetBoolValueFor(refineNotCmmd);
   double sigCutoff = P.GetDoubleValueFor(cutoffCmmd);
@@ -322,13 +329,18 @@ int main( int argc, char** argv )
 
   cout << "SATSUMA: Welcome to SatsumaSynteny! Current date and time: " << GetTimeStatic() << endl;
 
-  string satsuma2_path(std::getenv("SATSUMA2_PATH"));
-  string current_path(std::getenv("PWD"));
+  //string satsuma2_path = std::getenv("SATSUMA2_PATH");
+  //string current_path = std::getenv("PWD");
+
+  string satsuma2_path  = getEnvVar("SATSUMA2_PATH");
+  string current_path = getEnvVar("PWD");
+
   if (satsuma2_path==""){
     cout << "ERROR: SATSUMA2_PATH variable not set, please set it to the binary path." <<endl;
     return -1;
   }
   cout<< "Path for Satsuma2: '"<<satsuma2_path<<"'"<<endl;
+
   //TODO: test for the binaries to be there!
 
   //ALG: create output dir
@@ -358,10 +370,10 @@ int main( int argc, char** argv )
   const char * pExec = argv[0];
   cout << "Executing " << pExec << endl;
 
-  if (bLSF && strstr(pExec, "/") == NULL) {
-    cout << "When submitting to LSF, Satsuma must be run with the full path (e.g. '/usr/home/dummy/Satsuma...'" << endl;
-    return -1;
-  }
+  //if (bLSF && strstr(pExec, "/") == NULL) {
+  //  cout << "When submitting to LSF, Satsuma must be run with the full path (e.g. '/usr/home/dummy/Satsuma...'" << endl;
+  //  return -1;
+  //}
 
   if (output == "") {
     cout << "You MUST specify a valid output directory (option '-o')!" << endl;
@@ -418,11 +430,26 @@ int main( int argc, char** argv )
       for (long long i=11; i<32; i+=2){
         seedFile = output + "/kmatch_results.k"+ to_string(i);
         string cmd;
-        cmd = "echo \"cd " + current_path + ";"+ satsuma2_path + "/KMatch " + sQuery + " " + sTarget;
+        // old cmd
+        //cmd = "echo \"cd " + current_path + ";"+ satsuma2_path + "/kmatch " + sQuery + " " + sTarget;
+        //cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1) + " " + to_string((long long)max_kmatch_freq);
+        //cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
+
+        // new cmd
+        cmd = satsuma2_path + "/KMatch " + sQuery + " " + sTarget;
         cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1) + " " + to_string((long long)max_kmatch_freq);
-        cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
-        cout << "Running seed pre-filter " << cmd << endl;
-        system(cmd.c_str());
+        cmd += "; touch " + seedFile + ".finished";
+
+        cout << "Running seed pre-filter: " << endl << "  " << cmd << endl;
+
+        // now build the command to call the shell script
+        string sh_cmd;
+        int ncpus = 2;  // kmatch uses max 2 threads
+        sh_cmd = "sh " + satsuma2_path + "/satsuma_run.sh " + current_path + " \"" + cmd + "\" " + to_string(ncpus) + " " + to_string(kmatch_mem) + " KM" + to_string(i);
+
+        //cout << "Running " << sh_cmd << endl;
+        //system(cmd.c_str());
+        system(sh_cmd.c_str());
       }
       //TODO:wait for the kmatches to finish
       cout << "Waiting for seed pre-filters..." << endl;
@@ -464,7 +491,7 @@ int main( int argc, char** argv )
     matches.Collapse();
   }
   else {
-    cout << "SATSUMA: Processing  KMATCH results, date and time: " << GetTimeStatic() << endl;
+    cout << "SATSUMA: Processing KMATCH results, date and time: " << GetTimeStatic() << endl;
     unsigned long int new_matches_count;
     wq.collect_new_matches(matches); //matches.Read(seedFile);
     matches.Sort();
@@ -622,12 +649,11 @@ int main( int argc, char** argv )
   mergeCmd += " -o " + output + "/satsuma_summary.chained.out";
   mergeCmd += " > " + output + "/MergeXCorrMatches.chained.out";
 
-  cout << "Running " << mergeCmd << endl;
+  cout << "Merging XCorr matches: " << endl << "  " << mergeCmd << endl;
   system(mergeCmd.c_str());
 
   //ALG: if bNoRef, refine matches
   if (bNoRef) {
-    cout << "Running refined matches (fill in the blanks)." << endl;
     string refCmd = satsuma2_path;
     refCmd += "/HomologyByXCorr -cutoff 1.2  -q " + sQuery;
     refCmd += " -t " + sTarget;
@@ -635,30 +661,23 @@ int main( int argc, char** argv )
     refCmd += " -guide " + output + "/xcorr_aligns.final.out";
     refCmd += " > " + output + "/HomologyByXCorr.refined.out";
 
-    cout << "Running " << refCmd << endl;
+    cout << "Running refined matches (fill in the blanks): " << endl << "  " << refCmd << endl;
     system(refCmd.c_str());
 
 
     refCmd = satsuma2_path;
-
     refCmd += "/MergeXCorrMatches -i " + output + "/xcorr_aligns.refined.out";
     refCmd += " -q " + sQuery + " -t " + sTarget;
     refCmd += " -o " + output + "/satsuma_summary.refined.out";
     refCmd += " > " + output + "/MergeXCorrMatches.refined.out";
 
-    cout << "Running " << refCmd << endl;
+    cout << "Merging XCorr matches: " << endl << "  " << refCmd << endl;
     system(refCmd.c_str());
   }
-
-
-  cout << "all done!" << endl;
-
 
   cout << "Joining Workqueue thread"<<endl;
   wq.join();
   cout << "SATSUMA: all done, date and time: " << GetTimeStatic() << endl;
-  cout << "all done!" << endl;
-
 
   return 0;
 }

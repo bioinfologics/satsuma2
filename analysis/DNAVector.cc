@@ -4,7 +4,7 @@
 
 #include "DNAVector.h"
 #include "../base/FileParser.h"
-#include "../util/mutil.h"
+//#include "../util/mutil.h"
 #include "Coordinate.h"
 
 

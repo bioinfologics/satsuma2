@@ -1,12 +1,12 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <string>
+//#include <string>
 #include <vector>
 #include <map>
 #include <memory>
 #include <iomanip>
-#include <string>
+//#include <string>
 
 class Chromosome{
   public:

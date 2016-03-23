@@ -4,7 +4,7 @@ project(satsuma2)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -std=c++14 -O3")
 
 set(SOURCE_FILES_MATCHDUMP kmatch/matchdump.cc kmatch/matchresult.h kmatch/KMatch.h)
-set(SOURCE_FILES_KMATCH kmatch/KMatch.cc kmatch/KMatch.h kmatch/matchresult.h kmatch/KMatch.h)
+set(SOURCE_FILES_KMATCH kmatch/KMatch.cc kmatch/KMatch.h kmatch/matchresult.h)
 set(SOURCE_FILES_MERGEXCORRMATCHES analysis/MergeXCorrMatches.cc base/StringUtil.cc analysis/DNAVector.cc base/FileParser.cc analysis/XCorrDynProg.cc analysis/SequenceMatch.cc util/mutil.cc)
 set(SOURCE_FILES_MATCHESBYFEATURE tools/MatchesByFeature.cc)
 set(SOURCE_FILES_CHAINMATCHES analysis/ChainMatches.cc base/StringUtil.cc analysis/DNAVector.cc base/FileParser.cc analysis/XCorrDynProg.cc analysis/MatchDynProg.cc analysis/SequenceMatch.cc util/mutil.cc)
@@ -12,7 +12,7 @@ set(SOURCE_FILES_SATSUMASYNTENY2 analysis/SatsumaSynteny2.cc analysis/DNAVector.
 set(SOURCE_FILES_HOMOLOGYBYXCORRSLAVE analysis/HomologyByXCorrSlave.cc analysis/ProbTable.cc analysis/DNAVector.cc base/FileParser.cc util/mutil.cc analysis/CrossCorr.cc analysis/CodonTranslate.cc analysis/SeqChunk.cc base/StringUtil.cc analysis/AlignProbability.cc)
 
 add_executable(matchdump ${SOURCE_FILES_MATCHDUMP})
-add_executable(kmatch ${SOURCE_FILES_KMATCH})
+add_executable(KMatch ${SOURCE_FILES_KMATCH})
 add_executable(MergeXCorrMatches ${SOURCE_FILES_MERGEXCORRMATCHES})
 add_executable(MatchesByFeature ${SOURCE_FILES_MATCHESBYFEATURE})
 add_executable(ChainMatches ${SOURCE_FILES_CHAINMATCHES})

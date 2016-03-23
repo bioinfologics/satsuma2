@@ -293,15 +293,35 @@ void WorkQueue::setup_queue(){
   //spawns each slave with its slave_id
   start_listener();  
   stringstream cmd;
+  stringstream sh_cmd;
   for (int i=0;i<slave_count;i++){
     cmd.str("");
     //cmd << "echo cd $PWD ';export MALLOC_PER_THREAD=1;/opt/sgi/mpt/mpt-2.05/bin/omplace -nt 8 ";
-    cmd << "echo cd $PWD ';";
-    cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1 << " -p "<< threads;
-    cmd << " -q " << query_filename << " -t " << target_filename;
-    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << (probTable ? " -prob_table true": "") <<"'|qsub -l ncpus=" << threads << " -N SL" << i+1;
-    cout<< "Launching slave with command line:"<<endl<<"  "<<cmd.str()<<endl;
-    system(cmd.str().c_str());
+
+    // old cmd
+    //cmd << "echo cd $PWD ';";
+    //cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1 << " -p "<< threads;
+    //cmd << " -q " << query_filename << " -t " << target_filename;
+    //cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << (probTable ? " -prob_table true": "") <<"'|qsub -l ncpus=" << threads << " -N SL" << i+1;
+
+    //system(cmd.str().c_str());
+
+    // new cmd
+    cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port;
+    cmd << " -sid " << i+1 << " -p "<< threads << " -q " << query_filename << " -t " << target_filename;
+    cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb;
+    cmd << " -cutoff " << sigCutoff << (probTable ? " -prob_table true": "");
+
+    cout<< "Launching slave: " << endl << "  " << cmd.str() <<endl;
+
+    sh_cmd.str("");
+    int mem = 100;  //TODO: JW what to do here? - need to correct below
+    sh_cmd << "sh " << std::getenv("SATSUMA2_PATH") << "/satsuma_run.sh " << std::getenv("PWD") << " \"" << cmd.str() << "\" " << to_string(threads);
+    sh_cmd << " " << to_string(mem) << " SL" << i+1;
+
+    //cout << sh_cmd.str() << endl;
+
+    system(sh_cmd.str().c_str());
   }
 }
 

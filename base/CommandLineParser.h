@@ -57,7 +57,7 @@ string GetType()
     return "int";
   else if ( type.find("Id") != string::npos )
     return "double";
-  else if ( type.find("ISs") != string::npos )
+  else if ( type.find("ISs") != string::npos || type.find("INSt") != string::npos )
     return "string";
   else
     return "unknown type";

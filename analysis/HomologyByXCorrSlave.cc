@@ -10,16 +10,16 @@
 #include "SequenceMatch.h"
 #include "SeqChunk.h"
 #include "AlignProbability.h"
-#include "MatchDynProg.h"
+//#include "MatchDynProg.h"
 #include "WorkQueue.h"
 #include "ProbTable.h"
-#include "../util/mutil.h"
+//#include "../util/mutil.h"
 #include <queue>
-#include <thread>
-#include <mutex>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+//#include <thread>
+//#include <mutex>
+//#include <sys/types.h>
+//#include <sys/socket.h>
+//#include <netinet/in.h>
 #include <netdb.h>
 
 //global variables, cheating but should work

@@ -313,7 +313,7 @@ void KMatch::dump_matching_blocks(char * out_filename, int min_length, int max_j
 
 int main(int argc, char ** argv){
   if (argc!=8) {
-    std::cout<<"Usage: "<<argv[0]<<" target.fa query.fa K output.fa min_length jump max_freq"<<std::endl;
+    std::cout<<"Usage: "<<argv[0]<<" query.fa target.fa K output.fa min_length jump max_freq"<<std::endl;
     return -1;
   }
   
