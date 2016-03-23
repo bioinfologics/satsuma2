@@ -6,7 +6,7 @@ Satsuma2 is an optimsed version of Satsuma, a tool to reliably align large and c
 * a match scoring scheme that eliminates almost all false hits.
 * an asynchronous "battleship"-like search that enables fast whole-genome alignment.
 
-Satsuma also interfaces with MizBee, a multi-scale synteny browser for exploring conservation relationships in comparative genomics data (<http://www.cs.utah.edu/~miriah/mizbee/Overview.html>).
+Satsuma2 also interfaces with MizBee, a multi-scale synteny browser for exploring conservation relationships in comparative genomics data (<http://www.cs.utah.edu/~miriah/mizbee/Overview.html>).
 
 Satsuma2 is implemented in C++ on Linux.
 
@@ -16,12 +16,11 @@ Satsuma2 is free software: you can redistribute it and/or modify it under the te
 
 ## Citing Satsuma2
 
-We plan to submit an application note that should be published during the summer of 2016. If you are using Satsuma2 for research that will be published before that, please contact us to discuss how you can cite the tool in the meantime.
+We plan to submit an application note that should be published during the summer of 2016. In the meantime, if you are using Satsuma2 for research that will be published before that, please contact us to discuss how you can cite the tool.
 
 ## Installation
 
-Download the source code from xx   
-Compile it using CMake v3.3+ and GCC v5.2+
+Download the source code from <https://github.com/bjclavijo/satsuma2.git> and compile it using CMake v3.3+ (requires GCC v5.2+).  THe binaries are generated in the bin/ directory.
 
 ## Quick start
 
@@ -41,7 +40,7 @@ As Satsuma2 calls other executables (HomologyByXCorr, MergeXCorrMatches etc.), y
 export SATSUMA2_PATH=/path/to/binaries
 ```
 
-Running SatsumaSynteny2 with no command line arguments shows the available parameters;
+Running SatsumaSynteny2 with no command-line arguments shows the available parameters;
 
 ```
 $ ./SatsumaSynteny2
@@ -56,6 +55,7 @@ Available arguments:
 -l<int> : minimum alignment length (def=0)
 -t_chunk<int> : target chunk size (def=4096)
 -q_chunk<int> : query chunk size (def=4096)
+-sl_mem<int> : memory requirement for slaves (Gb) (def=100)
 -do_refine<bool> : refinement steps (def=0)
 -min_prob<double> : minimum probability to keep match (def=0.99999)
 -cutoff<double> : signal cutoff (def=1.8)
@@ -75,9 +75,9 @@ Available arguments:
 -dump_cycle_matches<bool> : dump matches on each cycle (for debug/testing) (def=0)
 ```
 
-The parameters you need to provide are query FASTA (-q), target FASTA (-t) and output directory (-o).  The query and target sequences are chunked (based on the -t\_chunk and -q\_chunk parameters) and KMatch is used to detect aligning regions between chunks.  The number of chunks generated depends on the length of your query and target sequences.  The amount of memory reserved for KMatch can be modified using the -km_mem parameter but this defaults to XXGb (currently 100Gb) which is enough to align 2 XMb sequences, the general size of two x genomes.
+Required parameters are query FASTA (-q), target FASTA (-t) and output directory (-o).  The query and target sequences are chunked (based on the -t\_chunk and -q\_chunk parameters) and KMatch is used to detect aligning regions between chunks.  The number of chunks generated depends on the length of your query and target sequences.  The amount of memory reserved for KMatch can be modified using the -km_mem parameter but this currently defaults to 100Gb.
 
-SatsumaSynteny2 despatches slave processes to compare the chunks (?) which run asynchronosly.  The number of slaves and threads per slave are specified using the -slaves and -threads parameters.  The default is one single-threaded slave.  Slaves can be run on a single machine or submitted via a batch processing system such as LSF, PBS or SLURM.  The satsuma_run.sh file contains the commands to do this and this file is used by SatsumaSynteny2 to run the slaves.  Before running SatsumaSynteny2, you need to configure this file to suit your environment by commenting out the lines you don't need with #.  For example, to run on SLURM your file should look like this;
+SatsumaSynteny2 despatches slave processes to compare the chunks which run asynchronosly.  The number of slaves, threads per slave and memory limit per slave are specified using the -slaves, -threads and -sl_mem parameters.  The default is one single-threaded slave using 100Gb of memory.  Slaves can be run on a single machine or submitted via a batch processing system such as LSF, PBS or SLURM.  The satsuma_run.sh file is used by SatsumaSynteny2 to start the slaves.  Before running SatsumaSynteny2, you need to configure this file to suit your environment by commenting out the lines you don't need with #.  For example, to run on SLURM your file should look like this;
 
 ```
 # Script for starting Satsuma jobs on different job submission environments
@@ -102,18 +102,22 @@ sbatch -p tgac-long -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
 
 ```
 
-Notes;  
-* If the output directory is not empty, SatsumaSynteny will not overwrite any files but exit with an error message.
+### Notes  
 
-TODO: more notes in README but I have to check them
+* If the output directory is not empty, SatsumaSynteny2 will not overwrite any files but exit with an error message.  * Idling processes self-terminate after two minutes. The overall alignments will still complete, but using fewer processes.  * If alignment runs locally but not on the server farm, check whether processes on the farm can communicate via TCP/IP.  * Currently, the entire sequences are loaded into RAM by each process. For comparison of large genomes, we strongly recommend to make sure that the CPUs have enough RAM available (~ the size of both genomes in bytes). 
+
+### Parameter choice, execution and data preparation  
+* The default parameters should work well for most genomes.* SatsumaSynteny2 runs most efficiently on either multi-processor machines or on clusters that are tightly coupled (fast access to files shared by the control process and the slaves)* Especially for larger genomes, we recommend leaving one CPU dedicated to the control process SatsumaSynteny2.* For larger genomes (>1Gb), we recommend using one chromosome of one genome as the target sequence and the entire other genome as the query sequence, and process alignments one query chromosome at a time. * To include large-scale duplications in the query sequence (in addition to the target sequence), use the option –dups.* If using the option –nofilter, the number of initial searches (-ni) should be higher than the number of processes (-n) to ensure that subsequent processes have sufficient seeds. Note that initial searches will be queued to a number of processes specified by -n.
+* When many processes search a tight space, the number of pixels per CPU (-m) should be small (e.g. ‘–m 1’ as in the sample script/data set) to avoid unbalanced load (i.e. some processes get all the pixels while others are starved, since they overlap). However, a small value for –m increases inter-process communication, which should be a consideration when deploying hundreds of processes.
+
 
 ## Making SatsumaSynteny2 converge (a temporary note)
 
-Given a new and more exhaustive convergence model, which is still under active development, Satsuma2 may fail to converge into a single final result, and rather enter an iteration cycle, where lots of small (or not so small) changes are made to the general alignement search strategy. Instead of hiding this behaviour under a fixed cutoff after a number of iterations, we have chosen to expose it, and allow the user to examine and choose the intermediate result that suits the biological question best.
+Given a new and more exhaustive convergence model, which is still under active development, Satsuma2 may fail to converge into a single final result, and rather enter an iteration cycle, where lots of small (or not so small) changes are made to the general alignement search strategy. Instead of hiding this behaviour under a fixed cutoff after a number of iterations, we have chosen to expose it, and allow the user to examine and choose the intermediate result that best suits the biological question.
 
-For this reason, we have introduced the parameter -dump\_cycle\_matches, which will basically produce an output file on each cycle. Because this output files are not so big and have the whole information of the cycle, we recommend to turn this parameter on, unless you're running on conditions already know where you're sure the convergence setup will work correctly. You can then examinate the convergence (probably using the MatchesByFeature tool if one of your genomes is annotated) and decide which solution(s) suit your objectives best.
+For this reason, we have introduced the parameter -dump\_cycle\_matches, which will produce an output file on each cycle. Because these output files are not particularly large and contain the whole information of the cycle, we recommend to turn this parameter on, unless you're running on datasets where you already know that the convergence setup will work correctly. You can then examine the convergence (probably using the MatchesByFeature tool if one of your genomes is annotated) and decide which solution(s) best suits your objectives.
 
-We are working on generalizing the convergence model so it behaves well under most circumstances, but still this will always be a recommendation when starting to run Satsuma2 in new scenarios.
+We are working on generalizing the convergence model so it behaves well under most circumstances, but still this will always be a recommendation when starting to run SatsumaSynteny2 in new scenarios.
 
 
 ## Output files
@@ -136,7 +140,6 @@ chrX	6270	6452	chrX	9472	9654	0.576923	+```
 
 Note: ‘space’ in fasta names is permissible for alignment, but all spaces will be replaced with “_” in the output files.
 **<outdir>/MergeXCorrMatches.chained.out: final readable alignments**
-TODO: check this - old version was MergeXCorrMatches.out
 
 ```
 EXAMPLE:
@@ -171,7 +174,7 @@ Run each tool with no arguments to see available options.
 
 ### Alignment tool
 
-* ColaAlignSatsuma: realigns global alignment in satsuma format (summary coordinates file) using Cola, an efficient implementation of a collection of sequence alignment algorithms.
+* ColaAlignSatsuma: realigns global alignments in satsuma format (summary coordinates file) using Cola, an efficient implementation of a collection of sequence alignment algorithms.
 
 ### Visualisation tools
 
@@ -185,9 +188,14 @@ Run each tool with no arguments to see available options.
 * OrderOrientBySynteny: orders and orients scaffolds according to a synteny map.
 
 ### Other useful tools
+* MatchesByFeature: report matches by specific features using a GFF3 file.  To show matches to exon and CDS features defined in GFF file genome.gff using match files match1 and match2 use;
+
+```
+./MatchesByFeature genome.gff exon CDS - - - - - match1 match2
+```
 * ReverseSatsumaOut: swaps query and target columns in the satsuma output file.
 * SatsumaToFasta: generates a FASTA file using a satsuma summary file from either the query or the target genome.
-* SatsumaToGFF: generates a GFF3 file from a satsuma summary file. TODO: need to test
+* SatsumaToGFF: generates a GFF3 file from a satsuma summary file. 
 
 
 

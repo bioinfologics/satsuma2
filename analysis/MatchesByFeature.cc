@@ -209,6 +209,12 @@ void MatchesByFeatureTracker::print_results(){
 
 
 int main(int argc, char *argv[]){
+
+  if (argc==1) {
+    std::cout<<"Usage: "<<argv[0]<<" gff3_file <gff_features> <match_files>"<<std::endl;
+    return -1;
+  }
+
   char* gff3_filename=argv[1];
   std::vector<std::string> features,filenames;
   for (auto i=2; i<9; i++) {
