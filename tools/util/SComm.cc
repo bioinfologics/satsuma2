@@ -200,8 +200,8 @@ bool SSocketCommTransmitter::SendWait(const char * message)
     close(sockfd);
 
     // JW - 1st line works on OSX, second line is the correct one
-    //int ret = send(new_fd, message, len, 0);
-    int ret = send(new_fd, message, len, MSG_CONFIRM);
+    int ret = send(new_fd, message, len, 0);
+    //int ret = send(new_fd, message, len, MSG_CONFIRM);
     printf("Send returns: %d\n", ret);
     if (ret < 0) 
       w_error("Server-send() error lol!");

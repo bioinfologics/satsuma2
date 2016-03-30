@@ -75,9 +75,9 @@ Available arguments:
 -dump_cycle_matches<bool> : dump matches on each cycle (for debug/testing) (def=0)
 ```
 
-Required parameters are query FASTA (-q), target FASTA (-t) and output directory (-o).  The query and target sequences are chunked (based on the -t\_chunk and -q\_chunk parameters) and KMatch is used to detect aligning regions between chunks.  The number of chunks generated depends on the length of your query and target sequences.  The amount of memory reserved for KMatch can be modified using the -km_mem parameter but this currently defaults to 100Gb.
+Required parameters are query FASTA (-q), target FASTA (-t) and output directory (-o).  The query and target sequences are chunked (based on the -t\_chunk and -q\_chunk parameters) and KMatch is used to detect aligning regions between chunks.  The number of chunks generated depends on the length of your query and target sequences.  The amount of memory reserved for KMatch can be modified using the -km\_mem parameter which defaults to 100Gb.
 
-SatsumaSynteny2 despatches slave processes to compare the chunks which run asynchronosly.  The number of slaves, threads per slave and memory limit per slave are specified using the -slaves, -threads and -sl_mem parameters.  The default is one single-threaded slave using 100Gb of memory.  Slaves can be run on a single machine or submitted via a batch processing system such as LSF, PBS or SLURM.  The satsuma_run.sh file is used by SatsumaSynteny2 to start the slaves.  Before running SatsumaSynteny2, you need to configure this file to suit your environment by commenting out the lines you don't need with #.  For example, to run on SLURM your file should look like this;
+SatsumaSynteny2 despatches slave processes to compare the chunks which run asynchronously.  The number of slaves, threads per slave and memory limit per slave are specified using the -slaves, -threads and -sl\_mem parameters.  The default is one single-threaded slave using 100Gb of memory.  Slaves can be run on a single machine or submitted via a job submission system such as LSF, PBS or SLURM.  The satsuma\_run.sh file is used by SatsumaSynteny2 to start the slaves.  Before running SatsumaSynteny2, you need to configure this file to suit your environment by commenting out the lines you don't need with #.  For example, to run on SLURM your file should look like this;
 
 ```
 # Script for starting Satsuma jobs on different job submission environments
@@ -101,6 +101,7 @@ echo srun $2 >> slurm_tmp.sh
 sbatch -p tgac-long -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
 
 ```
+**Please note, the parameters -km\_mem and -sl\_mem are only applied when using a job submission system.  If SatsumaSynteny2 is run without a submission system KMatch jobs will be launched as background processes and will compete for available memory which may cause the software to abort if not enough memory is available.  We strongly recommend using a job submission system to run SatsumaSynteny2 to allow more control of the resource requirements of the software.**
 
 ### Notes  
 
