@@ -20,13 +20,13 @@ We plan to submit an application note that should be published during the summer
 
 ## Installation
 
-Download the source code from <https://github.com/bjclavijo/satsuma2.git> and compile it using CMake v3.3+ (requires GCC v5.2+).  THe binaries are generated in the bin/ directory.
+Download the source code from <https://github.com/bjclavijo/satsuma2.git> and compile it using CMake v3.3+.  To run, Satsuma2 requires GCC v5.2+.  The binaries are generated in the bin/ directory.
 
 ## Quick start
 
 1. Set the SATSUMA2_PATH environment variable to point to the directory containing the binaries.
 2. Configure satsuma_run.sh to match your job submission system (LSF, PBS, SLURM etc.)
-3. Run SatsumaSynteny2 with default parameters (one single-threaded slave);
+3. Run SatsumaSynteny2 with default parameters (uses one single-threaded slave);
 
 ```
 ./SatsumaSynteny2 -q query.fa -t target.fa -o output_dir
@@ -65,6 +65,7 @@ Available arguments:
 -slaves<int> : number of processing slaves (def=1)
 -threads<int> : number of working threads per processing slave (def=1)
 -km_mem<int> : memory required for kmatch (Gb) (def=100)
+-km_sync<bool> : run kmatch jobs synchronously (def=1)
 -seed<string> : loads seeds and runs from there (kmatch files prefix) (def=)
 -min_seed_length<int> : minimum length for kmatch seeds (after collapsing) (def=24)
 -max_seed_kmer_freq<int> : maximum frequency for kmatch seed kmers (def=1)
@@ -81,12 +82,16 @@ SatsumaSynteny2 despatches slave processes to compare the chunks which run async
 
 ```
 # Script for starting Satsuma jobs on different job submission environments
-# Comment out the lines you do not need
-# Usage: satsuma_run.sh <current_path> <kmatch_cmd> <ncpus> <mem> <job_id>
+# Comment out the lines not required
+# Usage: satsuma_run.sh <current_path> <kmatch_cmd> <ncpus> <mem> <job_id> <run_synchronously>
 # mem should be in Gb, ie. 100Gb = 100
 
-# no submission system, just run locally as background processes
-#eval "$2 &"
+# no submission system, run process locally either synchronously or asynchronously
+#if [ "$6" -eq 1 ]; then
+#  eval "$2"
+#else
+#  eval "$2" &
+#fi
 
 # qsub (PBS systems)
 #echo "cd $1; $2" | qsub -V -l ncpus=$3,mem=$4G -N $5
@@ -101,10 +106,11 @@ echo srun $2 >> slurm_tmp.sh
 sbatch -p tgac-long -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
 
 ```
-**Please note, the parameters -km\_mem and -sl\_mem are only applied when using a job submission system.  If SatsumaSynteny2 is run without a submission system KMatch jobs will be launched as background processes and will compete for available memory which may cause the software to abort if not enough memory is available.  We strongly recommend using a job submission system to run SatsumaSynteny2 to allow more control of the resource requirements of the software.**
 
 ### Notes  
 
+* If SatsumaSynteny2 is run without a submission system, KMatch jobs will be launched synchronously in order to keep memory requirements low.  If you have plenty of memory available you can opt to run the KMatch jobs asynchronously (-km_sync 0).  KMatch requires a lot of memory and multiple KMatch processes running at the same time may cause SatsumaSynteny2 to abort if not enough memory is available.
+* The parameters -km\_mem and -sl\_mem are only applied when using a job submission system.  We strongly recommend using a job submission system to run SatsumaSynteny2 which allows more control of the resource requirements of this software.
 * If the output directory is not empty, SatsumaSynteny2 will not overwrite any files but exit with an error message.  * Idling processes self-terminate after two minutes. The overall alignments will still complete, but using fewer processes.  * If alignment runs locally but not on the server farm, check whether processes on the farm can communicate via TCP/IP.  * Currently, the entire sequences are loaded into RAM by each process. For comparison of large genomes, we strongly recommend to make sure that the CPUs have enough RAM available (~ the size of both genomes in bytes). 
 
 ### Parameter choice, execution and data preparation  

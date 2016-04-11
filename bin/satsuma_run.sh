@@ -1,13 +1,17 @@
 # Script for starting Satsuma jobs on different job submission environments
-# Comment out the lines you do not need
-# Usage: satsuma_run.sh <current_path> <kmatch_cmd> <ncpus> <mem> <job_id>
+# Comment out the lines not required
+# Usage: satsuma_run.sh <current_path> <kmatch_cmd> <ncpus> <mem> <job_id> <run_synchronously>
 # mem should be in Gb, ie. 100Gb = 100
 
-# no submission system, just run locally as background processes
-#eval "$2 &"
+# no submission system, run process locally either synchronously or asynchronously
+if [ "$6" -eq 1 ]; then
+  eval "$2"
+else
+  eval "$2" &
+fi
 
 # qsub (PBS systems)
-echo "cd $1; $2" | qsub -V -l ncpus=$3,mem=$4G -N $5
+#echo "cd $1; $2" | qsub -V -qProd -l ncpus=$3,mem=$4G -N $5
 
 # bsub (LSF systems)
 #mem=`expr $4 + 1000`

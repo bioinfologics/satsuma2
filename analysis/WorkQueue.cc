@@ -314,10 +314,10 @@ void WorkQueue::setup_queue(const int mem){
 
     cout<< "Launching slave: " << endl << "  " << cmd.str() <<endl;
 
+    // JW: slaves will always be run asynchronously
     sh_cmd.str("");
-    //int mem = 100;  //TODO: JW what to do here?
     sh_cmd << "sh " << std::getenv("SATSUMA2_PATH") << "/satsuma_run.sh " << std::getenv("PWD") << " \"" << cmd.str() << "\" " << to_string(threads);
-    sh_cmd << " " << to_string(mem) << " SL" << i+1;
+    sh_cmd << " " << to_string(mem) << " SL" << i+1 << " " << to_string(0);
 
     //cout << sh_cmd.str() << endl;
 

@@ -252,6 +252,7 @@ int main( int argc, char** argv )
   commandArg<int> slavesCmmd("-slaves","number of processing slaves", 1);
   commandArg<int> threadsCmmd("-threads","number of working threads per processing slave", 1);
   commandArg<int> kmmemCmmd("-km_mem","memory required for kmatch (Gb)",100);  // TODO: default to mammal genome requirement
+  commandArg<bool> kmsyncCmmd("-km_sync","run kmatch jobs synchronously",true);
   commandArg<int> slmemCmmd("-sl_mem","memory requirement for slaves (Gb)", 100); // TODO: default to mammal genome requirement
   commandArg<int> perCmmd("-m","number of jobs per block", 4);
   commandArg<bool> refineNotCmmd("-do_refine","refinement steps", false);
@@ -287,6 +288,7 @@ int main( int argc, char** argv )
   P.registerArg(slavesCmmd);
   P.registerArg(threadsCmmd);
   P.registerArg(kmmemCmmd);
+  P.registerArg(kmsyncCmmd);
   P.registerArg(seedCmmd);
   P.registerArg(min_seedCmmd);
   P.registerArg(max_kmatch_freqCmmd);
@@ -322,6 +324,7 @@ int main( int argc, char** argv )
   bool bFilter = P.GetBoolValueFor(filterCmmd);
   bool bDup = P.GetBoolValueFor(dupCmmd);
   bool bDumpCycleMatches = P.GetBoolValueFor(dumpCycleMatchesCmmd);
+  bool bKm_sync = P.GetBoolValueFor(kmsyncCmmd);
   MultiMatches matches;
   
   int i, j;
@@ -361,9 +364,6 @@ int main( int argc, char** argv )
    } else {
     fclose(pProbe);
   }
-
-
-
 
   //cout << "outdir " << output << endl;
 
@@ -445,7 +445,7 @@ int main( int argc, char** argv )
         // now build the command to call the shell script
         string sh_cmd;
         int ncpus = 2;  // kmatch uses max 2 threads
-        sh_cmd = "sh " + satsuma2_path + "/satsuma_run.sh " + current_path + " \"" + cmd + "\" " + to_string(ncpus) + " " + to_string(kmatch_mem) + " KM" + to_string(i);
+        sh_cmd = "sh " + satsuma2_path + "/satsuma_run.sh " + current_path + " \"" + cmd + "\" " + to_string(ncpus) + " " + to_string(kmatch_mem) + " KM" + to_string(i) + " " + to_string(bKm_sync);
 
         //cout << "Running " << sh_cmd << endl;
         //system(cmd.c_str());
