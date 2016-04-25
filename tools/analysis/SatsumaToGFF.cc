@@ -26,12 +26,13 @@ int main( int argc, char** argv )
     if (parser.GetItemCount() == 0)
       continue;
     if (bTarget) {
+      // convert from 0-based coords to GFF3 1-based coords
       // target based
-      cout << parser.AsString(0) << "\tSatsuma\tblock\t" << parser.AsInt(1) << "\t" << parser.AsInt(2) << "\t\t" << parser.AsString(7) << "\t.\t";
+      cout << parser.AsString(0) << "\tSatsuma\tblock\t" << parser.AsInt(1) + 1 << "\t" << parser.AsInt(2) << "\t\t" << parser.AsString(7) << "\t.\t";
       cout << "ID=sblock_" << to_string(count) << ";Name=sblock_" << to_string(count) << ";Target=" << parser.AsString(3) << endl;
     } else {
       // query based
-      cout << parser.AsString(3) << "\tSatsuma\tblock\t" << parser.AsInt(4) << "\t" << parser.AsInt(5) << "\t\t" << parser.AsString(7) << "\t.\t";
+      cout << parser.AsString(3) << "\tSatsuma\tblock\t" << parser.AsInt(4) + 1 << "\t" << parser.AsInt(5) << "\t\t" << parser.AsString(7) << "\t.\t";
       cout << "ID=sblock_" << to_string(count) << ";Name=sblock_" << to_string(count) << ";Target=" << parser.AsString(0) << endl;
     }
 

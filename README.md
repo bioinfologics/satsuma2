@@ -120,11 +120,11 @@ sbatch -p tgac-long -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
 
 ## Making SatsumaSynteny2 converge (a temporary note)
 
-Given a new and more exhaustive convergence model, which is still under active development, Satsuma2 may fail to converge into a single final result, and rather enter an iteration cycle, where lots of small (or not so small) changes are made to the general alignement search strategy. Instead of hiding this behaviour under a fixed cutoff after a number of iterations, we have chosen to expose it, and allow the user to examine and choose the intermediate result that best suits the biological question.
+Given a new and more exhaustive convergence model, which is still under active development, Satsuma2 may fail to converge into a single final result, and rather enter an iteration cycle, where lots of small (or not so small) changes are made to the general alignment search strategy. Instead of hiding this behaviour under a fixed cutoff after a number of iterations, we have chosen to expose it, and allow the user to examine and choose the intermediate result that best suits the biological question.
 
 For this reason, we have introduced the parameter -dump\_cycle\_matches, which will produce an output file on each cycle. Because these output files are not particularly large and contain the whole information of the cycle, we recommend to turn this parameter on, unless you're running on datasets where you already know that the convergence setup will work correctly. You can then examine the convergence (probably using the MatchesByFeature tool if one of your genomes is annotated) and decide which solution(s) best suits your objectives.
 
-We are working on generalizing the convergence model so it behaves well under most circumstances, but still this will always be a recommendation when starting to run SatsumaSynteny2 in new scenarios.
+We are working on generalising the convergence model so it behaves well under most circumstances, but still this will always be a recommendation when starting to run SatsumaSynteny2 in new scenarios.
 
 
 ## Output files
