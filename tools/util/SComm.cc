@@ -199,8 +199,9 @@ bool SSocketCommTransmitter::SendWait(const char * message)
     /* child doesn't need the listener */
     close(sockfd);
 
-    // JW - 1st line works on OSX, second line is the correct one
-    //int ret = send(new_fd, message, len, 0);
+#ifdef __APPLE__
+#define MSG_CONFIRM 0;
+#endif
     int ret = send(new_fd, message, len, MSG_CONFIRM);
     printf("Send returns: %d\n", ret);
     if (ret < 0) 
