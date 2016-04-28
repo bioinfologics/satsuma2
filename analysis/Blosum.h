@@ -1,8 +1,6 @@
 #ifndef BLOSUM_H
 #define BLOSUM_H
 
-#include "DNAVector.h"
-
 const int blosum_table[] = 
 {
 4, 0, -2, -1, -2, 0, -2, -1, -1, -1, -1, -2, -1, -1, -1, 1, 0, 0, -3, -2, -1, 

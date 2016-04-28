@@ -1,11 +1,6 @@
-//#ifndef FORCE_DEBUG
-//#define NDEBUG
-//#endif
-
 #include "DNAVector.h"
 #include "../base/FileParser.h"
-//#include "../util/mutil.h"
-#include "Coordinate.h"
+
 
 
 #define ONE_THIRD 1./3.
@@ -1512,18 +1507,6 @@ void vecDNAVector::Sort() {
   }
   //for(map<DNAVector, string>::iterator currRemoved = tempNameMap.begin(); currRemoved != tempNameMap.end(); currRemoved++)
   //invalidateReferences(currRemoved->second);
-}
-
-bool vecDNAVector::SetSequence(const Coordinate& coords, DNAVector& resultSeq) const {
-  if(!HasChromosome(coords.getChr())) { 
-    //FILE_LOG(logWARNING) << "Check Genome data! - Chromosome: " << coords.getChr() 
-    //<< " was not found in the given fasta file";
-    return false; 
-  }   
-  bool set = resultSeq.SetToSubOf(this->operator()(coords.getChr()), coords.getStart(), coords.getStop()-coords.getStart()+1);
-  if (coords.isReversed())
-    resultSeq.ReverseComplement();
-  return set;
 }
 
 void vecDNAVector::addReference(ReferenceListener *newReference) const {

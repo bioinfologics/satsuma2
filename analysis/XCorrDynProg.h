@@ -234,7 +234,7 @@ class XCDynProgLine
 };
 
 
-
+/*
 class XCDynProg
 {
  public:
@@ -267,6 +267,6 @@ class XCDynProg
 
 };
 
-
+*/
 
 #endif

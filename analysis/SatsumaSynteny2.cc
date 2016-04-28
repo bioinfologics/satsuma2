@@ -10,14 +10,9 @@
 #include "../base/CommandLineParser.h"
 #include "SequenceMatch.h"
 #include "GridSearch.h"
-//#include "SeqChunk.h"
 #include "MatchDynProg.h"
 #include "../util/SysTime.h"
-//#include <math.h>
-//#include <netinet/in.h>
-//#include <sys/socket.h>
 #include "WorkQueue.h"
-//#include "DNAVector.h"
 #define POSITION_CHR_CNST 10000000000L
 
 class SyntenyInterpolator
@@ -37,17 +32,9 @@ private:
     int i;
     double eps = 0;
     double div = 0;
-    // Idiotic...
-    //cout << "Matches: " << last - first << endl;
     for (i=first+1; i<=last; i++) {
       const SingleMatch & m = chained.GetMatch(i);
-      //cout << m.GetQueryID() << " " << m.GetStartQuery();
-  /*    if (m.IsRC())
-	cout << " -" << endl;
-      else
-	cout << " +" << endl;*/
       const SingleMatch & l = chained.GetMatch(i-1);
-
       double x = m.GetStartTarget() - l.GetStartTarget();
       double y = m.GetStartQuery() - l.GetStartQuery();
       double s = y/x;
@@ -427,15 +414,10 @@ int main( int argc, char** argv )
       cout<<"KMATCH not run because old seeds passed on."<<endl;
     }
     else if ( seedFile == "") {
+      //Launch KMatch
       for (long long i=11; i<32; i+=2){
         seedFile = output + "/kmatch_results.k"+ to_string(i);
         string cmd;
-        // old cmd
-        //cmd = "echo \"cd " + current_path + ";"+ satsuma2_path + "/kmatch " + sQuery + " " + sTarget;
-        //cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1) + " " + to_string((long long)max_kmatch_freq);
-        //cmd += "; touch " + seedFile + ".finished\"|qsub -l ncpus=2,mem=100G";
-
-        // new cmd
         cmd = satsuma2_path + "/KMatch " + sQuery + " " + sTarget;
         cmd += " " + to_string(i) + " " + seedFile + " " + to_string(i) + " " + to_string(i-1) + " " + to_string((long long)max_kmatch_freq);
         cmd += "; touch " + seedFile + ".finished";
@@ -447,11 +429,9 @@ int main( int argc, char** argv )
         int ncpus = 2;  // kmatch uses max 2 threads
         sh_cmd = "sh " + satsuma2_path + "/satsuma_run.sh " + current_path + " \"" + cmd + "\" " + to_string(ncpus) + " " + to_string(kmatch_mem) + " KM" + to_string(i) + " " + to_string(bKm_sync);
 
-        //cout << "Running " << sh_cmd << endl;
-        //system(cmd.c_str());
         system(sh_cmd.c_str());
       }
-      //TODO:wait for the kmatches to finish
+      //wait for the kmatches to finish
       cout << "Waiting for seed pre-filters..." << endl;
       seedFile = output + "/kmatch_results.k";
       int finished=0;
