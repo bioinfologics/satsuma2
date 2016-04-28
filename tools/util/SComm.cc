@@ -200,7 +200,7 @@ bool SSocketCommTransmitter::SendWait(const char * message)
     close(sockfd);
 
 #ifdef __APPLE__
-#define MSG_CONFIRM 0;
+#define MSG_CONFIRM 0
 #endif
     int ret = send(new_fd, message, len, MSG_CONFIRM);
     printf("Send returns: %d\n", ret);
