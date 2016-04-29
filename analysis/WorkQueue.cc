@@ -166,8 +166,8 @@ void WorkQueue::receive_solutions() {
 }
 
 void WorkQueue::serve(){
-  socklen_t clilen;
-  struct sockaddr_in serv_addr, cli_addr;
+  //socklen_t clilen;
+  //struct sockaddr_in serv_addr, cli_addr;
   int n;
   for (int i=0;i<slave_count;i++) idle_slaves.push_back(false);
   //ALG: while the shutdown flag is not true
@@ -229,9 +229,9 @@ void WorkQueue::join(){
 void WorkQueue::start_listener(){
   //TODO opens socket
   int portno;
-  socklen_t clilen;
-  char buffer[256];
-  struct sockaddr_in serv_addr, cli_addr;
+  //socklen_t clilen;
+  //char buffer[256];
+  struct sockaddr_in serv_addr;//, cli_addr;
   int n;
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -270,7 +270,6 @@ void WorkQueue::close_queue(){
 
 void WorkQueue::results_from_file(const char * filename, const std::vector<SeqChunk> & _queryInfo){
   FILE * rf=fopen(filename,"r");
-  long file_size;
   //preallocate vector space
   fseek(rf, 0 , SEEK_END);
   std::cout<<"Pre-Allocating memory for "<<ftell(rf)/sizeof(t_result)<<" new elements"<<std::endl;
@@ -296,17 +295,6 @@ void WorkQueue::setup_queue(const int mem){
   stringstream sh_cmd;
   for (int i=0;i<slave_count;i++){
     cmd.str("");
-    //cmd << "echo cd $PWD ';export MALLOC_PER_THREAD=1;/opt/sgi/mpt/mpt-2.05/bin/omplace -nt 8 ";
-
-    // old cmd
-    //cmd << "echo cd $PWD ';";
-    //cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port << " -sid " << i+1 << " -p "<< threads;
-    //cmd << " -q " << query_filename << " -t " << target_filename;
-    //cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb << " -cutoff " << sigCutoff << (probTable ? " -prob_table true": "") <<"'|qsub -l ncpus=" << threads << " -N SL" << i+1;
-
-    //system(cmd.str().c_str());
-
-    // new cmd
     cmd << std::getenv("SATSUMA2_PATH") << "/HomologyByXCorrSlave" << " -master " << master_hostname << " -port " << port;
     cmd << " -sid " << i+1 << " -p "<< threads << " -q " << query_filename << " -t " << target_filename;
     cmd << " -l " << minLen << " -q_chunk " << queryChunk << " -t_chunk " << targetChunk << " -min_prob " << minProb;
@@ -318,8 +306,6 @@ void WorkQueue::setup_queue(const int mem){
     sh_cmd.str("");
     sh_cmd << "sh " << std::getenv("SATSUMA2_PATH") << "/satsuma_run.sh " << std::getenv("PWD") << " \"" << cmd.str() << "\" " << to_string(threads);
     sh_cmd << " " << to_string(mem) << " SL" << i+1 << " " << to_string(0);
-
-    //cout << sh_cmd.str() << endl;
 
     system(sh_cmd.str().c_str());
   }

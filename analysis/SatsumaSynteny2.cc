@@ -213,8 +213,6 @@ class TargetCoverageTracker{
 
   private:
     std::shared_ptr<std::vector<match_segments>> match_blocks;
-    
-  
 };
 
 std::string getEnvVar( std::string const & key )

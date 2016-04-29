@@ -1,12 +1,7 @@
-//#ifndef FORCE_DEBUG
-//#define NDEBUG
-//#endif
-
 #include "DNAVector.h"
 #include "../base/FileParser.h"
 #include "../util/mutil.h"
 #include "Coordinate.h"
-//#include "extern/logger/log.h"
 
 #define ONE_THIRD 1./3.
 
@@ -976,15 +971,6 @@ void vecDNAVector::fast_erase(int index) {
 		  m_name2index[(*this)[index].getName()] = index;
 }
 
-bool vecDNAVector::fast_erase(const string &name) {
-	  int index = NameIndex(name);
-	  if(index != -1) {
-		  fast_erase(index);
-		  return true;
-	  }
-	  return false;
-}
-
 int vecDNAVector::size() const {
 	return m_data.isize();
 }
@@ -1032,58 +1018,6 @@ void vecDNAVector::DoProteins(bool b)
 }
 
 
-void vecDNAVector::ReadV(const string & file) 
-{
-  int ver = 1;
-  int i, j;
-  CMReadFileStream s;
-  s.Open(file.c_str());
-  
-  s.Read(ver);
-  int size = 0;
-
-  s.Read(size);
-  resize(size);
-
-  for (i=0; i<isize(); i++) {
-    CMString n;
-    s.Read(n);
-    DNAVector & d = (*this)[i];
-    d.SetName((const char *)n);
-    m_name2index[d.getName()] = i;
-    int len = 0;
-    s.Read(len);
-    d.resize(len);
-    for (j=0; j<len; j++)
-      s.Read(d[j]);
-  }
-
-  s.Close();
-}
-
-void vecDNAVector::WriteV(const string & file) const
-{
-  int ver = 1;
-  int i, j;
-  CMWriteFileStream s;
-  s.Open(file.c_str());
-  
-  s.Write(ver);
-  s.Write(isize());
-
-  for (i=0; i<isize(); i++) {
-    CMString n = (*this)[i].getName().c_str();
-    s.Write(n);
-    const DNAVector & d = (*this)[i];
-    int len = d.isize();
-    s.Write(len);
-    for (j=0; j<len; j++)
-      s.Write(d[j]);
-  }
-
-  s.Close();
-}
-
 
 
 void vecDNAVector::Write(const string & fileName, bool bSkipEmpty) const
@@ -1104,60 +1038,6 @@ void vecDNAVector::Write(const string & fileName, bool bSkipEmpty) const
   fclose(p);
 }
 
-void vecDNAVector::WriteQuals(const string & fileName) const
-{
-  FILE * p = fopen(fileName.c_str(), "w");
-  int i;
-  for (i=0; i<isize(); i++) {
-    fprintf(p, "%s\n", (*this)[i].getName().c_str());
-    (*this)[i].WriteQual(p);
-  }
-  fclose(p);
-}
-
-
-
-void vecDNAVector::ReadQuals(const string & fileName)
-{
-  if (m_data.isize() == 0) {
-    cout << "vecDNAVector ERROR: you need to load the bases first!" << endl;
-    return;
-  }
-    
-  FlatFileParser parser;
-  
-  parser.Open(fileName);
-  
-  int i = 0;
-  int k = 0;
-  int j;
-
-  while (parser.ParseLine()) {
-    if (parser.GetItemCount() == 0)
-      continue;
-    const char * p = parser.AsString(0).c_str();
-    if (p[0] == '>') {
-
-      string tmpName = parser.AsString(0);
-      for (int x=1; x<parser.GetItemCount(); x++) {
-	tmpName += "_";
-	tmpName += parser.AsString(x);
-      }
-
-      if (tmpName != (*this)[i].getName()) {
-	cout << "vecDNAVector ERROR: qual file is out of sync with fasta file!" << endl;	
-	return;
-      }
-      k = 0;
-      ++i;
-      continue;
-    }
-    for (j=0; j<parser.GetItemCount(); j++) {
-      (*this)[i-1].SetQual(k, parser.AsInt(j));
-      k++;
-    }
-  }
-}
 
 
 void vecDNAVector::ReadQ(const string & fileName) // Reads a fastq file
@@ -1306,202 +1186,11 @@ void vecDNAVector::Read(const string & fileName, svec<string> & names)
 	}
 }
 
-void vecDNAVector::ReadPartial(const string & fileName, unsigned int firstToRead, unsigned int numToRead, bool bProteins, bool shortName, bool allUpper)
-{
-	if(numToRead == 0)
-		return;
-
-	FlatFileParser parser;
-	parser.Open(fileName);
-
-	clear();
-
-	// reserve some space
-	const int chunk = 20000;
-
-	// 200 Megs?
-	const int bigChunk = 200000000;
-
-	m_data.resize(chunk);
-
-	DNAVector tmpVec;
-
-	unsigned int currSequenceLength = 0;
-	int currIndex = -1;
-	unsigned int numRead = 0;
-
-	string currName;
-	//When this terminates currName will hold the name of the first sequence to read
-	while(currIndex < (int)firstToRead && parser.ParseLine()) {
-		if (parser.AsString(0)[0] == '>') {
-			currIndex++;
-			currName = parser.AsString(0);
-			if ( !shortName )  {
-				for (int x=1; x<parser.GetItemCount(); x++) {
-					currName += "_";
-					currName += parser.AsString(x);
-				}
-			}
-		}
-	}
-
-	while (numRead < numToRead && parser.ParseLine()) {
-		if (parser.GetItemCount() == 0)
-			continue;
-		const char * p = parser.AsString(0).c_str();
-		if (p[0] == '>') {
-			(*this)[numRead].SetName(currName);
-			(*this)[numRead].SetToSubOf(tmpVec, 0, currSequenceLength);
-			currSequenceLength = 0;
-
-			if (allUpper)
-				(*this)[numRead].ToUpper();
-			if (bProteins)
-				(*this)[numRead].Proteinize();
-			numRead++;
-
-			currName = parser.AsString(0);
-			if ( !shortName )  {
-				for (int x=1; x<parser.GetItemCount(); x++) {
-					currName += "_";
-					currName += parser.AsString(x);
-				}
-			}
-
-
-			if (numRead >= m_data.size())
-				m_data.resize(numRead + chunk);
-		}
-		else {
-			int n = strlen(p);
-
-			for (int i=0; i<n; i++) {
-				if (currSequenceLength >= (unsigned int)tmpVec.size())
-					tmpVec.resize(currSequenceLength + bigChunk);
-				tmpVec[currSequenceLength] = p[i];
-				currSequenceLength++;
-			}
-		}
-	}
-
-	if (numRead < numToRead) {
-		(*this)[numRead].SetName(currName);
-		(*this)[numRead].SetToSubOf(tmpVec, 0, currSequenceLength);
-		currSequenceLength = 0;
-
-		if (allUpper)
-			(*this)[numRead].ToUpper();
-		if (bProteins)
-			(*this)[numRead].Proteinize();
-
-		numRead++;
-	}
-
-	m_data.resize(numRead);
-	setupMap();
-}
-
-void vecDNAVector::ReadMultiple(const vector<string> &fileNames, bool bProteins, bool shortName, bool allUpper) {
-	m_data.clear();
-
-	int k = 0;
-	int i;
-	int j = 0;
-	DNAVector * pVec = NULL;
-	DNAVector tmpVec;
-
-	// reserve some space
-	int chunk = 20000;
-
-	// 200 Megs?
-	int bigChunk = 200000000;
-
-	m_data.resize(chunk);
-
-	for(unsigned int currFile = 0; currFile < fileNames.size(); currFile++) {
-		FlatFileParser parser;
-		parser.Open(fileNames[currFile]);
-
-		while (parser.ParseLine()) {
-			if (parser.GetItemCount() == 0)
-				continue;
-			const char * p = parser.AsString(0).c_str();
-			if (p[0] == '>') {
-				if (pVec != NULL) {
-					pVec->SetToSubOf(tmpVec, 0, j);
-					if (allUpper)
-						pVec->ToUpper();
-					j = 0;
-					if (bProteins)
-						pVec->Proteinize();
-				}
-
-
-				string tmpName = parser.AsString(0);
-				if ( !shortName )  {
-					for (int x=1; x<parser.GetItemCount(); x++) {
-						tmpName += "_";
-						tmpName += parser.AsString(x);
-					}
-				}
-				//cout << "In: " << tmpName << endl;
-
-				if (k >= m_data.isize())
-					m_data.resize(k + chunk);
-
-				pVec = &(*this)[k];
-				pVec->SetName(tmpName);
-				k++;
-				continue;
-			}
-			int n = strlen(p);
-
-			//cout << "Parsing: " << p << endl;
-			for (i=0; i<n; i++) {
-				if (j >= tmpVec.isize())
-					tmpVec.resize(j + bigChunk);
-				tmpVec[j] = p[i];
-				j++;
-			}
-
-		}
-
-		if (pVec != NULL) {
-			pVec->SetToSubOf(tmpVec, 0, j);
-			if (allUpper)
-				pVec->ToUpper();
-			j = 0;
-			if (bProteins)
-				pVec->Proteinize();
-
-			pVec = NULL;
-		}
-	}
-
-	//cout << "Read sequences: " << k << endl;
-	m_data.resize(k);
-	setupMap();
-}
-
 void vecDNAVector::ReverseComplement() {
   for (int i=0; i < m_data.isize(); i++)
     (*this)[i].ReverseComplement();
 }
 
-void vecDNAVector::UniqueSort() {
-	map<DNAVector, string> tempNameMap;
-	for(int i = 0; i < m_data.isize(); i++)
-		tempNameMap[(*this)[i]] = (*this)[i].getName();
-
-  m_name2index.clear();
-  ::UniqueSort(m_data);
-  for(int i = 0; i < m_data.isize(); i++) {
-  	m_name2index[tempNameMap[(*this)[i]]] = i;
-  	tempNameMap.erase((*this)[i]);
-  }
-  for(map<DNAVector, string>::iterator currRemoved = tempNameMap.begin(); currRemoved != tempNameMap.end(); currRemoved++)
-  	invalidateReferences(currRemoved->second);
-}
 
 void vecDNAVector::Sort() {
   map<DNAVector, string> tempNameMap;
@@ -1797,57 +1486,6 @@ int CountNs(const DNAVector & d)
       n++;
   }
   return n;
-}
-
-bool IsHomopolymer(const DNAVector &d, double threshold)
-{
-  map<char,int> basecounts;
-  for (int i=0; i<d.isize(); ++i)
-  {
-    basecounts[d[i]]++;
-  }
-
-  map<char,int>::iterator mIter = basecounts.begin();
-  unsigned int max(basecounts.count(mIter->first));
-  for (; mIter != basecounts.end(); ++mIter)
-    if (basecounts.count(mIter->first) > max)
-      max = basecounts.count(mIter->first);
-  
-  return ((double) max/d.isize() >= threshold);
-}
-
-
-
-
-//=================================================================
-
-void vecDNAVectorStream::ReadStream(const string & fileName)
-{
-  if (m_pParser != NULL)
-    delete m_pParser;
-
-  m_pParser = new FlatFileParser;
-  
-  m_pParser->Open(fileName);
-}
-
-
-const DNAVector & vecDNAVectorStream::Next()
-{
-
-  m_seq.resize(0);
-  while (m_pParser->ParseLine()) {
-    if (m_pParser->GetItemCount() == 0)
-      continue;
-    const char * p = m_pParser->AsString(0).c_str();
-    if (p[0] == '>') {
-      break;
-    }
-    DNAVector tmp;
-    tmp.SetFromBases(m_pParser->Line());
-    m_seq += tmp;
-  }
-  return m_seq;
 }
 
 vecDNAVectorStream::~vecDNAVectorStream() 
