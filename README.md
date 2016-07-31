@@ -22,6 +22,12 @@ We plan to submit an application note that should be published during the summer
 
 Download the source code from <https://github.com/bjclavijo/satsuma2.git> and compile it using CMake v3.3+.  To run, Satsuma2 requires GCC v5.2+.  The binaries are generated in the bin/ directory.
 
+NOTE: if you encounter the error "... undefined reference to `pthread_create'" during compilation, add the flag -pthread to CMakeLists.txt, i.e. change:
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -std=c++14 -O3 -w")
+to:
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -pthread -std=c++14 -O3 -w")
+
 ## Quick start
 
 1. Set the SATSUMA2_PATH environment variable to point to the directory containing the binaries.
