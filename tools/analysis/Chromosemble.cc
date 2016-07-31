@@ -1,5 +1,6 @@
 #include <string>
 #include "../base/CommandLineParser.h"
+#include <stdlib.h>
 
 bool Run(const string & exec, const string & cmd) 
 {
@@ -20,6 +21,11 @@ bool Run(const string & exec, const string & cmd)
   return false;
 }
 
+std::string getEnvVar( std::string const & key )
+{
+  char * val = getenv( key.c_str() );
+  return val == NULL ? std::string("") : std::string(val);
+}
 
 int main( int argc, char** argv )
 {
@@ -56,33 +62,29 @@ int main( int argc, char** argv )
 
   int i;
 
+  string satsuma2_path  = getEnvVar("SATSUMA2_PATH");  
+  string current_path = getEnvVar("PWD");
 
-  const char * pExec = argv[0];
-  cout << "Executing " << pExec << endl;
-
-  char exec_dir[8192];
-  strcpy(exec_dir, pExec);
-  bool bTrunc = false;
-  for (i = strlen(exec_dir)-1; i>=0; i--) {
-    if (exec_dir[i] == '/') {
-      exec_dir[i+1] = 0;
-      bTrunc = true;
-      break;
-    }
+  if (satsuma2_path==""){
+    cout << "ERROR: SATSUMA2_PATH variable not set, please set it to the binary path." <<endl;
+    return -1;
   }
-  if (!bTrunc)
-    strcpy(exec_dir, "");
+  cout<< "Path for Satsuma2: '"<<satsuma2_path<<"'"<<endl;
+
+
+  string exec_dir = satsuma2_path + "/";
+
    
   string cmd;
   cmd = "mkdir " + outName;
   system(cmd.c_str());
 
   if (bThorough) {
-    cmd = "SatsumaSynteny -q ";
+    cmd = "SatsumaSynteny2 -q ";
     cmd += target;
     cmd += " -t ";
     cmd += query;
-    cmd += " -n ";
+    cmd += " -slaves ";
     cmd += Stringify(nth);
     cmd += " -o ";
     cmd += outName;
@@ -155,11 +157,11 @@ int main( int argc, char** argv )
   if (bChr) {
 
     if (bThorough) {
-      cmd = "SatsumaSynteny -q ";
+      cmd = "SatsumaSynteny2 -q ";
       cmd += target;
       cmd += " -t ";
       cmd += query;
-      cmd += " -n ";
+      cmd += " -slaves ";
       cmd += Stringify(nth);
       cmd += " -o ";
       cmd += outName;
@@ -235,11 +237,11 @@ int main( int argc, char** argv )
   //=======================================================
   
   if (bFinal) {
-    cmd = "SatsumaSynteny -t ";
+    cmd = "SatsumaSynteny2 -t ";
     cmd += target;
     cmd += " -q ";
     cmd += query;
-    cmd += " -n ";
+    cmd += " -slaves ";
     cmd += Stringify(nth);
     cmd += " -o ";
     cmd += outName;
