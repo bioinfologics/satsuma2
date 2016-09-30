@@ -1,0 +1,13 @@
+language: cpp
+compiler: gcc
+addons:
+  apt:
+    sources:
+      - george-edison55-precise-backports # for cmake 3.2.3
+      - ubuntu-toolchain-r-test # for g++-5
+    packages:
+      - cmake
+      - cmake-data
+      - g++-5
+
+script: cmake -DCMAKE_CXX_COMPILER=g++-5 CMakeCache.txt && make && ./test_SatsumaSynteny2 2>&1 > /dev/null

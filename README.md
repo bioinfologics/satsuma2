@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/arendsee/satsuma2.svg?branch=master)](https://travis-ci.org/arendsee/satsuma2)
+
+
 # Satsuma2
 
 Satsuma2 is an optimsed version of Satsuma, a tool to reliably align large and
