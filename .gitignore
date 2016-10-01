@@ -1,0 +1,6 @@
+# Ignore temporary files automatically created files and directories
+CMakeCache.txt
+CMakeFiles/
+bin/
+Makefile
+cmake_install.cmake
