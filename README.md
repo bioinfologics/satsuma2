@@ -136,7 +136,7 @@ sbatch -p QueueName -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
 * The default parameters should work well for most genomes.
 * SatsumaSynteny2 runs most efficiently on either multi-processor machines or on clusters that are tightly coupled (fast access to files shared by the control process and the slaves)
 * Especially for larger genomes, we recommend leaving one CPU dedicated to the control process SatsumaSynteny2.
-* For larger genomes (>1Gb), we recommend using one chromosome of one genome as the target sequence and the entire other genome as the query sequence, and process alignments one query chromosome at a time. 
+* For larger genomes (>1Gb), we recommend using one chromosome of one genome as the query sequence and the entire other genome as the target sequence, and process alignments one query chromosome at a time. 
 * To include large-scale duplications in the query sequence (in addition to the target sequence), use the option –dups.
 * If using the option –nofilter, the number of initial searches (-ni) should be higher than the number of processes (-n) to ensure that subsequent processes have sufficient seeds. Note that initial searches will be queued to a number of processes specified by -n.
 * When many processes search a tight space, the number of pixels per CPU (-m) should be small (e.g. ‘–m 1’ as in the sample script/data set) to avoid unbalanced load (i.e. some processes get all the pixels while others are starved, since they overlap). However, a small value for –m increases inter-process communication, which should be a consideration when deploying hundreds of processes.
