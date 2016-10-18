@@ -11,8 +11,10 @@ Satsuma2 also interfaces with MizBee, a multi-scale synteny browser for explorin
 Satsuma2 is implemented in C++ on Linux.
 
 ## Licensing
-Satsuma2 is free software: you can redistribute it and/or modify it under the terms of the Lesser GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or(at your option) any later version.
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the Lesser GNU General Public License for more details.
+Satsuma2 is free software: you can redistribute it and/or modify it under the terms of the Lesser GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the Lesser GNU General Public License for more details.
 
 ## Citing Satsuma2
 
@@ -84,32 +86,39 @@ Available arguments:
 
 Required parameters are query FASTA (-q), target FASTA (-t) and output directory (-o).  The query and target sequences are chunked (based on the -t\_chunk and -q\_chunk parameters) and KMatch is used to detect aligning regions between chunks.  The number of chunks generated depends on the length of your query and target sequences.  The amount of memory reserved for KMatch can be modified using the -km\_mem parameter which defaults to 100Gb.
 
-SatsumaSynteny2 despatches slave processes to compare the chunks which run asynchronously.  The number of slaves, threads per slave and memory limit per slave are specified using the -slaves, -threads and -sl\_mem parameters.  The default is one single-threaded slave using 100Gb of memory.  Slaves can be run on a single machine or submitted via a job submission system such as LSF, PBS or SLURM.  The satsuma\_run.sh file is used by SatsumaSynteny2 to start the slaves.  Before running SatsumaSynteny2, you need to configure this file to suit your environment by commenting out the lines you don't need with #.  For example, to run on SLURM your file should look like this;
+SatsumaSynteny2 despatches slave processes to compare the chunks which run asynchronously.  The number of slaves, threads per slave and memory limit per slave are specified using the -slaves, -threads and -sl\_mem parameters.  The default is to run one single-threaded slave using 100Gb of memory.  Slaves can be run on a single machine or submitted via a job submission system such as LSF, PBS or SLURM and the satsuma\_run.sh file is used by SatsumaSynteny2 to start the slaves.  Before running SatsumaSynteny2, you need to modify this file to suit your HPC environment by commenting out the lines you don't need with #. You will also need to change 'QueueName' to a queue that exists on your system.  For example, to run on SLURM your file should look like this;
 
 ```
+#!/bin/sh
+
 # Script for starting Satsuma jobs on different job submission environments
-# Comment out the lines not required
+# One section only should be active, ie. not commented out
+
 # Usage: satsuma_run.sh <current_path> <kmatch_cmd> <ncpus> <mem> <job_id> <run_synchronously>
 # mem should be in Gb, ie. 100Gb = 100
 
-# no submission system, run process locally either synchronously or asynchronously
+# no submission system, processes are run locally either synchronously or asynchronously
 #if [ "$6" -eq 1 ]; then
 #  eval "$2"
 #else
 #  eval "$2" &
 #fi
 
+##############################################################################################################
+## For the sections below you will need to change the queue name (QueueName) to one existing on your system ##
+##############################################################################################################
+
 # qsub (PBS systems)
-#echo "cd $1; $2" | qsub -V -l ncpus=$3,mem=$4G -N $5
+#echo "cd $1; $2" | qsub -V -qQueueName -l ncpus=$3,mem=$4G -N $5
 
 # bsub (LSF systems)
 #mem=`expr $4 + 1000`
-#bsub -o ${5}.log -J $5 -n $3 -q Prod256 -R "rusage[mem=$mem]" "$2"
+#bsub -o ${5}.log -J $5 -n $3 -q QueueName -R "rusage[mem=$mem]" "$2"
 
 # SLURM systems
 echo "#!/bin/sh" > slurm_tmp.sh
 echo srun $2 >> slurm_tmp.sh
-sbatch -p tgac-long -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
+sbatch -p QueueName -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
 
 ```
 
@@ -117,10 +126,19 @@ sbatch -p tgac-long -c $3 -J $5 -o ${5}.log --mem ${4}G slurm_tmp.sh
 
 * If SatsumaSynteny2 is run without a submission system, KMatch jobs will be launched synchronously in order to keep memory requirements low.  If you have plenty of memory available you can opt to run the KMatch jobs asynchronously (-km_sync 0).  KMatch requires a lot of memory and multiple KMatch processes running at the same time may cause SatsumaSynteny2 to abort if not enough memory is available.
 * The parameters -km\_mem and -sl\_mem are only applied when using a job submission system.  We strongly recommend using a job submission system to run SatsumaSynteny2 which allows more control of the resource requirements of this software.
-* If the output directory is not empty, SatsumaSynteny2 will not overwrite any files but exit with an error message.  * Idling processes self-terminate after two minutes. The overall alignments will still complete, but using fewer processes.  * If alignment runs locally but not on the server farm, check whether processes on the farm can communicate via TCP/IP.  * Currently, the entire sequences are loaded into RAM by each process. For comparison of large genomes, we strongly recommend to make sure that the CPUs have enough RAM available (~ the size of both genomes in bytes). 
+* If the output directory is not empty, SatsumaSynteny2 will not overwrite any files but exit with an error message.  
+* Idling processes self-terminate after two minutes. The overall alignments will still complete, but using fewer processes.  
+* If alignment runs locally but not on the server farm, check whether processes on the farm can communicate via TCP/IP.  
+* Currently, the entire sequences are loaded into RAM by each process. For comparison of large genomes, we strongly recommend to make sure that the CPUs have enough RAM available (~ the size of both genomes in bytes). 
 
 ### Parameter choice, execution and data preparation  
-* The default parameters should work well for most genomes.* SatsumaSynteny2 runs most efficiently on either multi-processor machines or on clusters that are tightly coupled (fast access to files shared by the control process and the slaves)* Especially for larger genomes, we recommend leaving one CPU dedicated to the control process SatsumaSynteny2.* For larger genomes (>1Gb), we recommend using one chromosome of one genome as the target sequence and the entire other genome as the query sequence, and process alignments one query chromosome at a time. * To include large-scale duplications in the query sequence (in addition to the target sequence), use the option –dups.* If using the option –nofilter, the number of initial searches (-ni) should be higher than the number of processes (-n) to ensure that subsequent processes have sufficient seeds. Note that initial searches will be queued to a number of processes specified by -n.
+
+* The default parameters should work well for most genomes.
+* SatsumaSynteny2 runs most efficiently on either multi-processor machines or on clusters that are tightly coupled (fast access to files shared by the control process and the slaves)
+* Especially for larger genomes, we recommend leaving one CPU dedicated to the control process SatsumaSynteny2.
+* For larger genomes (>1Gb), we recommend using one chromosome of one genome as the target sequence and the entire other genome as the query sequence, and process alignments one query chromosome at a time. 
+* To include large-scale duplications in the query sequence (in addition to the target sequence), use the option –dups.
+* If using the option –nofilter, the number of initial searches (-ni) should be higher than the number of processes (-n) to ensure that subsequent processes have sufficient seeds. Note that initial searches will be queued to a number of processes specified by -n.
 * When many processes search a tight space, the number of pixels per CPU (-m) should be small (e.g. ‘–m 1’ as in the sample script/data set) to avoid unbalanced load (i.e. some processes get all the pixels while others are starved, since they overlap). However, a small value for –m increases inter-process communication, which should be a consideration when deploying hundreds of processes.
 
 
@@ -148,11 +166,14 @@ Contents:
 	identity  
 	orientation  
 	
-EXAMPLE:chrX	5947	6164	chrX	9153	9360	0.626728	+ 
-chrX	6270	6452	chrX	9472	9654	0.576923	+```
+EXAMPLE:
+chrX	5947	6164	chrX	9153	9360	0.626728	+ 
+chrX	6270	6452	chrX	9472	9654	0.576923	+
+```
 
 Note: ‘space’ in fasta names is permissible for alignment, but all spaces will be replaced with “_” in the output files.
-**<outdir>/MergeXCorrMatches.chained.out: final readable alignments**
+
+**<outdir>/MergeXCorrMatches.chained.out: final readable alignments**
 
 ```
 EXAMPLE:
