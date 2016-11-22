@@ -13,6 +13,12 @@ set(SOURCE_FILES_MATCHESBYFEATURE analysis/MatchesByFeature.cc)
 set(SOURCE_FILES_CHAINMATCHES analysis/ChainMatches.cc base/StringUtil.cc analysis/DNAVector.cc base/FileParser.cc analysis/XCorrDynProg.cc analysis/MatchDynProg.cc analysis/SequenceMatch.cc util/mutil.cc)
 set(SOURCE_FILES_SATSUMASYNTENY2 analysis/SatsumaSynteny2.cc analysis/DNAVector.cc base/FileParser.cc util/mutil.cc analysis/CodonTranslate.cc analysis/SeqChunk.cc base/StringUtil.cc analysis/AlignProbability.cc analysis/WorkQueue.cc analysis/MatchDynProg.cc util/SysTime.cc analysis/SequenceMatch.cc analysis/GridSearch.cc)
 set(SOURCE_FILES_HOMOLOGYBYXCORRSLAVE analysis/HomologyByXCorrSlave.cc analysis/ProbTable.cc analysis/DNAVector.cc base/FileParser.cc util/mutil.cc analysis/CrossCorr.cc analysis/CodonTranslate.cc analysis/SeqChunk.cc base/StringUtil.cc analysis/AlignProbability.cc)
+set(SOURCE_FILES_HOMOLOGYBYXCORR tools/analysis/HomologyByXCorr.cc
+tools/analysis/DNAVector.cc tools/base/FileParser.cc tools/util/mutil.cc
+tools/analysis/CrossCorr.cc tools/analysis/CodonTranslate.cc
+tools/analysis/SeqChunk.cc tools/base/StringUtil.cc
+tools/analysis/AlignProbability.cc tools/analysis/MatchDynProg.cc
+tools/analysis/SequenceMatch.cc tools/aligns/KmerAlignCore.cc)
 
 add_executable(MatchDump ${SOURCE_FILES_MATCHDUMP})
 add_executable(KMatch ${SOURCE_FILES_KMATCH})
@@ -21,6 +27,7 @@ add_executable(MatchesByFeature ${SOURCE_FILES_MATCHESBYFEATURE})
 add_executable(ChainMatches ${SOURCE_FILES_CHAINMATCHES})
 add_executable(SatsumaSynteny2 ${SOURCE_FILES_SATSUMASYNTENY2})
 add_executable(HomologyByXCorrSlave ${SOURCE_FILES_HOMOLOGYBYXCORRSLAVE})
+add_executable(HomologyByXCorr ${SOURCE_FILES_HOMOLOGYBYXCORR})
 
 # tools from Satsuma
 # below gives MSG_CONFIRM error on OSX - see JW comment in tools/utils/SComm.cc
