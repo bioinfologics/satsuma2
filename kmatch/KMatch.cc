@@ -136,7 +136,13 @@ void KMatch::kmer_array_from_fasta(char * filename, std::vector<kmer_position_t>
       kposv[wi++]=kposv[ri];
     }
   }
-  kposv.resize(wi-1);
+
+  // resize only if filtered elements exist, else clear
+  if (wi!=0){
+    kposv.resize(wi-1);
+  } else {
+    kposv.resize(0);
+  }
   std::cout<<"Kmer array filtered to "<<wi<<" elements"<<std::endl;
 }
 
