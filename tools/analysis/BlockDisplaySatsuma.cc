@@ -202,6 +202,9 @@ int main( int argc, char** argv )
  
   int k = 0;
   while (parser.ParseLine()) {
+    if (parser.GetItemCount() == 0)
+      continue;
+    
     if (k >= (int) coords.size()) {
       coords.resize(k + 100000);
     }
