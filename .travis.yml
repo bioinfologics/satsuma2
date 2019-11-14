@@ -1,0 +1,45 @@
+language: c++
+sudo: false
+jobs:
+  include:
+  - stage: compile osx
+    os: osx
+    osx_image: xcode10.1
+    before_install:
+    - brew install gcc@6
+    env:
+    - CMAKE_OPTIONS="-DCMAKE_C_COMPILER=gcc-6 -DCMAKE_CXX_COMPILER=g++-6"
+    deploy:
+      provider: releases
+      api_key: $GITHUB_TOKEN
+      draft: true
+      skip_cleanup: true
+      file: build/satsuma2-${TRAVIS_OS_NAME}.tar.gz
+#      on:
+#        tags: true
+  - stage: compile linux
+    os: linux
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - g++-6
+    env:
+    - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+    - CMAKE_OPTIONS="-DCMAKE_C_COMPILER=gcc-6 -DCMAKE_CXX_COMPILER=g++-6"
+    deploy:
+      - provider: releases
+        api_key: $GITHUB_TOKEN
+        draft: false
+        skip_cleanup: true
+        file: build/satsuma2-${TRAVIS_OS_NAME}.tar.gz
+#        on:
+#          tags: true
+
+before_install:
+- eval "${MATRIX_EVAL}"
+script:
+- ".travis/build.sh"
+dd:
+  secure: aFXVIK1NFIMhEBg+ECum19mn1fMnogWglWBF6yqrfnfwXOHjfv0mn1sdK6NH5nl56pEgOxG+4aSfaDQQBlO5iJ6XkM3E+15T2RZ1heAIrGA8cIqw7SSw6kUUK1Zt8wyQE5NtA1jgPLgK6Af+hONKiqHVqThdW+SZwsnOcMV0ThhOqhLmn1wMMYGg02K/rNB4dq8lDHDdIPrjCaw0NmxMyPbJQk5quqxnvFUhg01fQm+GXXTFFgtQsJj5/QsIrYC+bvCraQsCan0aJ6OIAxETCHN2mCDQjPpxjxVidO8IpD1BCEcYXRbfcGg4rfIE4uZOZbL9B3huQmjXGv87No23K2upaLgNQYfW/aJJT/KGGgNEqTL1AUtziN06KC4HaN8UvQx0wEkTYymPImvHvujYk5+jZM+o3A9RXqNvs9u9wFfbnnpGwRiZoXTSUqoePLTW/bSQsSw3ZFqrYCuBA49oA9Vrl78Ic2+Zb8MVyPZnme9HM1BsuOeM/PsXwgpx91HeyR+0WPxUgLkVrmCrMhIcdKLMZAG8QyGBFtmPA3JdXETJNSgo9Jl5QBzlscX3sF3FJZCA4lLHgWqq2sbDmOUJlXrxwRhJo378xc/XVQFJueTqnKczxip0MOzifKwEqC3vruB5vwFnuqwiN8ZoQNPdZEne2bShIo4jRwNDA/gPVmQ=
