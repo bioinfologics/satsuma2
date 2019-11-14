@@ -76,4 +76,5 @@ install(TARGETS
         SatsumaToGFF
         FilterGridSeeds
         SortSatsuma
-        MergeScaffoldsBySynteny)
+        MergeScaffoldsBySynteny
+        RUNTIME DESTINATION bin)
