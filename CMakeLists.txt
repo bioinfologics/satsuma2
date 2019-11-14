@@ -30,7 +30,6 @@ add_executable(HomologyByXCorrSlave ${SOURCE_FILES_HOMOLOGYBYXCORRSLAVE})
 add_executable(HomologyByXCorr ${SOURCE_FILES_HOMOLOGYBYXCORR})
 
 # tools from Satsuma
-# below gives MSG_CONFIRM error on OSX - see JW comment in tools/utils/SComm.cc
 set(SOURCE_FILES_COLAALIGNSATSUMA tools/analysis/ColaAlignSatsuma.cc tools/base/FileParser.cc tools/analysis/CrossCorr.cc tools/analysis/DNAVector.cc tools/analysis/MatchDynProg.cc tools/analysis/AlignProbability.cc tools/util/mutil.cc tools/analysis/RefineSatsuma.cc tools/analysis/SequenceMatch.cc tools/aligns/KmerAlignCore.cc tools/analysis/SeqChunk.cc tools/base/ThreadHandler.cc tools/src/AlignmentBlock.cc tools/analysis/CodonTranslate.cc tools/src/Cola/Cola.cc tools/src/Alignment.cc tools/src/Cola/NSaligner.cc tools/src/Cola/EditGraph.cc tools/src/Cola/AlignmentCola.cc tools/src/Cola/NSGAaligner.cc tools/src/Cola/SWGAaligner.cc tools/base/StringUtil.cc tools/util/SComm.cc)
 set(SOURCE_FILES_BLOCKDISPLAYSATSUMA tools/analysis/BlockDisplaySatsuma.cc tools/analysis/DNAVector.cc tools/util/mutil.cc tools/base/FileParser.cc tools/base/StringUtil.cc)
 set(SOURCE_FILES_CHROMOSOMEPAINT tools/visual/ChromosomePaint.cc tools/base/FileParser.cc tools/util/mutil.cc tools/base/StringUtil.cc tools/visual/Color.cc tools/visual/Eps.cc)
@@ -56,3 +55,25 @@ add_executable(SatsumaToGFF ${SOURCE_FILES_SATSUMATOGFF})
 add_executable(FilterGridSeeds ${SOURCE_FILES_FILTERGRIDSEEDS})
 add_executable(SortSatsuma ${SOURCE_FILES_SORTSATSUMA})
 add_executable(MergeScaffoldsBySynteny ${SOURCE_FILES_MERGESCAFFOLDSBYSYNTENY})
+
+install(TARGETS
+        MatchDump
+        KMatch
+        MergeXCorrMatches
+        MatchesByFeature
+        ChainMatches
+        SatsumaSynteny2
+        HomologyByXCorrSlave
+        HomologyByXCorr
+        ColaAlignSatsuma
+        BlockDisplaySatsuma
+        ChromosomePaint
+        MicroSyntenyPlot
+        OrderOrientBySynteny
+        SatsumaToFASTA
+        ReverseSatsumaOut
+        Chromosemble
+        SatsumaToGFF
+        FilterGridSeeds
+        SortSatsuma
+        MergeScaffoldsBySynteny)
