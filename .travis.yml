@@ -9,6 +9,14 @@ jobs:
     - brew install gcc@6
     env:
     - CMAKE_OPTIONS="-DCMAKE_C_COMPILER=gcc-6 -DCMAKE_CXX_COMPILER=g++-6"
+    deploy:
+      provider: releases
+      api_key: $GITHUB_TOKEN
+      draft: true
+      skip_cleanup: true
+      file: build/satsuma2-${TRAVIS_OS_NAME}.tar.gz
+#      on:
+#        tags: true
   - stage: compile linux
     os: linux
     addons:
@@ -20,6 +28,15 @@ jobs:
     env:
     - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
     - CMAKE_OPTIONS="-DCMAKE_C_COMPILER=gcc-6 -DCMAKE_CXX_COMPILER=g++-6"
+    deploy:
+      - provider: releases
+        api_key: $GITHUB_TOKEN
+        draft: false
+        skip_cleanup: true
+        file: build/satsuma2-${TRAVIS_OS_NAME}.tar.gz
+#        on:
+#          tags: true
+
 before_install:
 - eval "${MATRIX_EVAL}"
 script:

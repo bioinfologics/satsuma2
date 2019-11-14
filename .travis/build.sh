@@ -8,6 +8,6 @@ cmake -DCMAKE_INSTALL_PREFIX=product .. ${CMAKE_OPTIONS}
 make all -j8
 make install
 
-tar cz product > sdg-${TRAVIS_OS_NAME}.tar.gz
+tar cz product > satsuma2-${TRAVIS_OS_NAME}.tar.gz
 
 
