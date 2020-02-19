@@ -222,7 +222,12 @@ Run each tool with no arguments to see available options.
 * OrderOrientBySynteny: orders and orients scaffolds according to a synteny map.
 
 ### Other useful tools
-* MatchesByFeature: report matches by specific features using a GFF3 file.  To show matches to exon and CDS features defined in GFF file genome.gff using match files match1 and match2 use;
+* MatchesByFeature: report matches by specific features using a GFF3 file. Up to 7 GFF features can be specified and GFF feature parameters not used should be represented with -.  
+
+```
+./MatchesByFeature GFF_file GFF_feature1 GFF_feature2 GFF_feature3 GFF_feature4 GFF_feature5 GFF_feature6 GFF_feature7 match_file1 match_file2
+```
+For example, the following command will show matches to ```exon``` and ```CDS``` features defined in the GFF file ```genome.gff``` using match files ```match1``` and ```match2```;
 
 ```
 ./MatchesByFeature genome.gff exon CDS - - - - - match1 match2
