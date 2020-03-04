@@ -1,6 +1,6 @@
 # Satsuma2
 
-Satsuma2 is an optimsed version of Satsuma, a tool to reliably align large and complex DNA sequences providing maximum sensitivity (to find all there is to find), specificity (to only find real homology) and speed (to accomodate the billions of base pairs in vertebrate genomes). Satsuma2 adresses these issues through three novel strategies:
+Satsuma2 is an optimised version of Satsuma, a tool to reliably align large and complex DNA sequences providing maximum sensitivity (to find all there is to find), specificity (to only find real homology) and speed (to accomodate the billions of base pairs in vertebrate genomes). Satsuma2 adresses these issues through three novel strategies:
 
 * cross-correlation, implemented via fast Fourier transformation. 
 * a match scoring scheme that eliminates almost all false hits.
@@ -18,7 +18,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 ## Citing Satsuma2
 
-We plan to submit an application note that should be published during the summer of 2016. In the meantime, if you are using Satsuma2 for research that will be published before that, please contact us to discuss how you can cite the tool.
+Please contact us to discuss how you can cite Satsuma2.
 
 ## Installation
 
@@ -30,6 +30,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -std=c++14 -O3 -w")
 to:
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -pthread -std=c++14 -O3 -w")
 
+We are experimenting with providing pre-compiled binaries which can be downloaded from the releases section. Once downloaded, you should be able to run these directly.
+
 ## Quick start
 
 1. Set the SATSUMA2_PATH environment variable to point to the directory containing the binaries.
@@ -39,6 +41,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lpthread -pthread -std=c++14 -O3 -w")
 ```
 ./SatsumaSynteny2 -q query.fa -t target.fa -o output_dir
 ```
+
+You can test the installation using the test dataset provided (dog vs. human) by running the test_SatsumaSynteny2 script.
 
 ## Running Satsuma2
 
@@ -84,7 +88,7 @@ Available arguments:
 -dump_cycle_matches<bool> : dump matches on each cycle (for debug/testing) (def=0)
 ```
 
-Required parameters are query FASTA (-q), target FASTA (-t) and output directory (-o).  The query and target sequences are chunked (based on the -t\_chunk and -q\_chunk parameters) and KMatch is used to detect aligning regions between chunks.  The number of chunks generated depends on the length of your query and target sequences.  The amount of memory reserved for KMatch can be modified using the -km\_mem parameter which defaults to 100Gb.
+Required parameters are query FASTA (-q), target FASTA (-t) and output directory (-o).  The query and target sequences are chunked (based on the -t\_chunk and -q\_chunk parameters) then KMatch is used to detect aligning regions between chunks.  The number of chunks generated depends on the length of your query and target sequences.  The amount of memory reserved for KMatch can be modified using the -km\_mem parameter which defaults to 100Gb.
 
 SatsumaSynteny2 despatches slave processes to compare the chunks which run asynchronously.  The number of slaves, threads per slave and memory limit per slave are specified using the -slaves, -threads and -sl\_mem parameters.  The default is to run one single-threaded slave using 100Gb of memory.  Slaves can be run on a single machine or submitted via a job submission system such as LSF, PBS or SLURM and the satsuma\_run.sh file is used by SatsumaSynteny2 to start the slaves.  Before running SatsumaSynteny2, you need to modify this file to suit your HPC environment by commenting out the lines you don't need with #. You will also need to change 'QueueName' to a queue that exists on your system.  For example, to run on SLURM your file should look like this;
 
