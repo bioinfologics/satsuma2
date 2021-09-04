@@ -1,4 +1,0 @@
-
-export SATSUMA2_PATH=./bin
-
-bin/SatsumaSynteny2 -q samples/human.X.part.fasta -t samples/dog.X.part.fasta -o xcorr_sample_synt -slaves 2 -threads 2
