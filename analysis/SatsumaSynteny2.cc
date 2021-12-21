@@ -7,6 +7,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <memory>
 #include "../base/CommandLineParser.h"
 #include "SequenceMatch.h"
 #include "GridSearch.h"
